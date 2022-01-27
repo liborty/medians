@@ -1,0 +1,29 @@
+[package]
+name = "medians"
+version = "0.0.1"
+authors = ["Libor Spacek"]
+edition = "2021"
+description = "Median, Statistical Measures, Mathematics, Statistics"
+readme = "README.md"
+homepage = "https://github.com/liborty/medians"
+repository = "https://github.com/liborty/medians"
+license = "BSD-3"
+keywords = ["statistics","median"]
+categories = ["science","mathematics","algorithms"]
+include = [
+    "src/*.rs",
+    "tests/*.rs",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE"
+]
+[badges]
+maintenance = { status = "actively-developed" }
+[lib]
+[dependencies]
+rstats = "^1"
+indxvec = "^1"
+anyhow = "^1"
+
+[dev-dependencies]
+devtimer = "4"
