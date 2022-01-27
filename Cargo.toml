@@ -21,9 +21,11 @@ include = [
 maintenance = { status = "actively-developed" }
 [lib]
 [dependencies]
-rstats = "^1"
+# rstats = "^1"
+rstats = { path = "/home/l/gits/rstats/" }
 indxvec = "^1"
 anyhow = "^1"
 
 [dev-dependencies]
-devtimer = "4"
+devtimer = "^4"
+random-number = "^0.1"

@@ -1,4 +1,4 @@
-use core::ops::Add;
+use std::ops::{Add,Sub};
 use rstats::{here,MinMax};
 /// simple error handling
 use anyhow::{Result,bail};
@@ -28,13 +28,19 @@ pub fn naive_median<T>(s:&[T]) -> Result<f64>
         else { f64::from(v[mid]) })  
 }
 
-/// Fast median only of a &[T] slice by partitioning
-    pub fn newmedian<T>(s:&[T]) -> Result<f64>
-        where T: PartialOrd+Copy,f64:From<T> {
-        // define balance of signs closure
-        let balance = |x:f64| s.iter().map(|&s| (f64::from(s)-x).signum()).sum::<f64>();
-        let MinMax{min,minindex,max,maxindex} = minmax(s);
-        Ok(1.)
-    }
+///  balance of signs against the pivot
+fn balance<T>(set:&[T],pivot:f64) -> i32 
+    where T: PartialOrd+Copy+Sub<Output=T>,f64:From<T> {
+    set.iter().map(|&st| {
+        let s = f64::from(st);
+        if s>pivot { 1 } else if s<pivot { -1 } else { 0 }}).sum::<i32>()
+}
 
- 
+/// Fast median of &[T] slice by partitioning
+    pub fn newmedian<T>(s:&[T]) -> Result<i32>
+        where T: PartialOrd+Copy+Sub<Output=T>,f64:From<T> {  
+        let MinMax{min,max,..} = minmax(s);
+        let pivot = f64::from(max-min)/2.0;
+        let bal = balance(s,pivot);
+        Ok(bal)
+    } 
