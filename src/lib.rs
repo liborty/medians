@@ -1,8 +1,5 @@
 use std::ops::{Add,Sub};
-use rstats::here;
-/// simple error handling
 use anyhow::{Result,bail};
-use indxvec::merge::{sortm};
 
 /// Median of a &[T] slice by sorting
 /// # Example
@@ -12,20 +9,21 @@ use indxvec::merge::{sortm};
 /// let res = naive_median(&v).unwrap();
 /// assert_eq!(res,8_f64);
 /// ```
-pub fn naive_median<T>(s:&[T]) -> Result<f64> 
+pub fn naive_median<T>(s:&mut[T]) -> Result<f64> 
     where T: PartialOrd+Copy+Add<Output=T>,f64:From<T> {
     let n = s.len();
     match n {
-        0 => bail!("{} empty vector!",here!()),
+        0 => bail!("empty vector!"),
         1 => return Ok(f64::from(s[0])),
         2 => return Ok(f64::from(s[0]+s[1])/2.0),
         _ => {}
     } 
-    let v = sortm(s,true); // expensive step!
+    //let v = sortm(s,true); // expensive step!
+    s.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap()); 
     let mid = n/2;
     // test if n is odd
-    Ok(if (n & 1) == 0 { f64::from(v[mid-1] + v[mid]) / 2.0 }
-        else { f64::from(v[mid]) })  
+    Ok(if (n & 1) == 0 { f64::from(s[mid-1] + s[mid]) / 2.0 }
+        else { f64::from(s[mid]) })  
 }
 
 fn partition<T>(set:&[T],pivot:f64) -> (Vec<T>,Vec<T>) 
@@ -44,7 +42,7 @@ pub fn median<T>(set:&[T]) -> Result<f64>
     where T: PartialOrd+Copy+Sub<Output=T>+Add<Output=T>,f64:From<T> { 
     let n = set.len();
     match n {
-        0 => bail!("{} empty vector!",here!()),
+        0 => bail!("empty vector!"),
         1 => return Ok(f64::from(set[0])),
         2 => return Ok(f64::from(set[0]+set[1])/2.0),
         _ => {}
