@@ -20,29 +20,25 @@ fn naive() -> Result<()> {
    let n = 10_usize;
    println!("\nTesting on a set of {} random u8 vectors of length {} each",wi(&n),wi(&d)); 
    let mut v = vec![0u8;333];
-   let mut sumtime = 0_u128;
-   let mut timer = DevTime::new_simple();
+   let mut n_time = 0_u128;
+   let mut f_time = 0_u128;
+   let mut n_timer = DevTime::new_simple();
+   let mut f_timer = DevTime::new_simple();
    for _i in 0..n {
       random_fill!(v);
-      timer.start();
-      let m = naive_median(&v).unwrap();
-      timer.stop();
-      sumtime += timer.time_in_nanos().unwrap(); 
-      println!("Median: {}",wi(&m));
+      n_timer.start();
+      let n_med = naive_median(&v).unwrap();
+      n_timer.stop();
+      n_time += n_timer.time_in_nanos().unwrap();
+      f_timer.start();
+      let f_med = median(&v).unwrap();
+      f_timer.stop();
+      f_time += f_timer.time_in_nanos().unwrap();       
+      println!("Medians: {} {}",wi(&n_med),wi(&f_med));
    }
-   println!("Total Naive Time: {:<12} seconds",wi(&(sumtime as f64/1e9)));
-
-   sumtime = 0_u128;
-   timer = DevTime::new_simple();
-   for _i in 0..n {
-      random_fill!(v);
-      timer.start();
-      let m = naive_median(&v).unwrap();
-      timer.stop();
-      sumtime += timer.time_in_nanos().unwrap(); 
-      println!("Median: {}",wi(&m));
-   }
-   println!("Total Fast Time: {:<12} seconds",wi(&(sumtime as f64/1e9)));
+   let totaltime = f_time + n_time;
+   let tbal = f_time as i128 - n_time as i128;
+   println!("Total Time {} saved: {} nanoseconds",wi(&totaltime),wi(&tbal));
    Ok(())
 }
  
