@@ -1,6 +1,25 @@
 use std::ops::{Add,Sub};
 use anyhow::{Result,bail};
+// const ACCURACY:f64 = 1e-4;
 
+fn tofvec<T>(set:&[T]) -> Vec<f64> where T:Copy, f64:From<T> {
+    set.iter().map(|s| f64::from(*s)).collect()
+}
+
+fn even_naive_median(s:&mut [f64]) -> f64 { 
+    let mid = s.len()/2;
+    if mid == 1 { return (s[0]+s[1])/2.0; }; // original length == 2
+    s.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap()); 
+    // even functions return the mean of the two central elements 
+    (s[mid-1] + s[mid]) / 2.0 
+}
+fn odd_naive_median(s:&mut [f64]) -> f64 {
+    let mid = s.len()/2;
+    if mid == 0 { return s[0]; }; // original length == 1 
+    s.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+    // odd functions return the value of the middle element 
+    s[mid]
+}
 /// Median of a &[T] slice by sorting
 /// # Example
 /// ```
@@ -9,24 +28,76 @@ use anyhow::{Result,bail};
 /// let res = naive_median(&v).unwrap();
 /// assert_eq!(res,8_f64);
 /// ```
-pub fn naive_median<T>(s:&mut[T]) -> Result<f64> 
-    where T: PartialOrd+Copy+Add<Output=T>,f64:From<T> {
-    let n = s.len();
-    match n {
-        0 => bail!("empty vector!"),
-        1 => return Ok(f64::from(s[0])),
-        2 => return Ok(f64::from(s[0]+s[1])/2.0),
-        _ => {}
-    } 
-    //let v = sortm(s,true); // expensive step!
-    s.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap()); 
-    let mid = n/2;
-    // test if n is odd
-    Ok(if (n & 1) == 0 { f64::from(s[mid-1] + s[mid]) / 2.0 }
-        else { f64::from(s[mid]) })  
+pub fn naive_median<T>(set:&[T]) -> Result<f64> 
+    where T: Copy,f64:From<T> {
+    let n = set.len();    
+    if n == 0 { bail!("empty vector!"); };
+    let mut s = tofvec(set); // makes an f64 mutable copy
+    // test if n is even
+    Ok( if (n & 1) == 0 { even_naive_median( &mut s) } 
+        else { odd_naive_median(&mut s) })  
 }
 
-/// Fast median of &[T] slice
+pub fn fast_median<T>(set:&[T]) -> Result<f64> 
+    where T: Copy,f64:From<T> {
+    let n = set.len();    
+    if n == 0 { bail!("empty vector!"); };
+    let s = tofvec(set); // makes an f64 mutable copy
+    // arithmetic mean as a starting iterative median 
+    let sumx:f64 = s.iter().sum();
+    let mean = sumx/(n as f64);
+    // test if even or odd
+    Ok( if (n & 1) == 0 { even_median(&s,mean) } 
+        else { odd_median(&s,mean) }) 
+}
+
+// iterative move towards the median
+fn mv(s:&[f64],x:f64) -> (f64,f64) { 
+    let mut recipsum = 0_f64;
+    let mut sigsum = 0_f64;
+    for &s in s {
+        let d = s-x;
+        if d.is_normal() {
+            recipsum += 1./(d.abs());
+            sigsum += d.signum()
+        }
+    }
+    (sigsum,recipsum)
+}
+
+/// Approximate median error for testing
+/// (absolute value of)
+pub fn mederror(s:&[f64],x:f64) -> f64 {
+    let (sn,rec) = mv(s,x);
+    (sn/rec).abs()
+}  
+
+fn odd_median(s:&[f64],mean:f64) -> f64 { 
+    let n = s.len();
+    if n == 1 { return s[0] };    
+    let mut gm = mean;
+    loop {
+        let (sigs,recs) = mv(s,gm); 
+        let mv = (sigs as f64)/recs;
+        gm += mv; 
+        if sigs.abs() < 3.0 { break gm };   
+    } 
+}
+
+fn even_median(s:&[f64],mean:f64) -> f64 { 
+    let n = s.len();
+    if n == 2 { return (s[0]+s[1])/2.0 };
+    let mut gm = mean;
+    loop {
+        let (sigs,recs) = mv(s,gm); 
+        let mv = (sigs as f64)/recs;
+        gm += mv; 
+        if sigs.abs() < 2.0 { break gm };   
+    } 
+}
+
+/// Fast approximate median of &[T] slice 
+/// Apply .floor() to the result for integer end types
 pub fn indxmedian<T>(set:&[T]) -> Result<f64>
     where T: PartialOrd+Copy+Sub<Output=T>+Add<Output=T>,f64:From<T> { 
     let n = set.len();
@@ -44,18 +115,25 @@ pub fn indxmedian<T>(set:&[T]) -> Result<f64>
         else if s > x2 { x2 = s }; 
     });
     let minf = f64::from(x1);
-    let hashit = (n-1)as f64 / (f64::from(x2)-minf); 
+    // linear transformation from [min,max] to [0,n-1]
+    let hashit = (n-1) as f64 / (f64::from(x2)-minf); 
+    // histogram (probability density function)
     let mut freqvec = vec![0_usize;n];
     for s in set { freqvec[((f64::from(*s)-minf)*hashit).floor()as usize] += 1 }
-    let mut freqsum:usize = 0;
-    let mut i:usize = 0;
-    while 2*freqsum < n {
-        freqsum += freqvec[i];
-        i += 1; 
-    };
-    Ok((i as f64/hashit+minf).floor())    
+     // cummulative probability density function over mid point
+    let mut freqsum = 0.;
+    let mut indx = 0;
+    let nhalf = n as f64/2.0;
+    for (i,f) in freqvec.iter().enumerate() {
+        freqsum += *f as f64;
+        if freqsum > nhalf { indx = i; break } 
+    }; 
+    let over = (freqsum - nhalf) as f64 / (freqvec[indx]) as f64;
+    Ok( (indx+1) as f64/hashit+minf - over/hashit )        
+    // transformed the midpoint back to the original range
 }
 
+/*
 fn partition<T>(set:&[T],pivot:f64) -> (Vec<T>,Vec<T>) 
     where T: PartialOrd+Copy+Sub<Output=T>,f64:From<T> {
     let n = set.len()-1;
@@ -67,7 +145,7 @@ fn partition<T>(set:&[T],pivot:f64) -> (Vec<T>,Vec<T>)
     } 
     (smaller,greater)
 }
-/*
+
 /// Fast median of &[T] slice
 pub fn median<T>(set:&[T]) -> Result<f64>
     where T: PartialOrd+Copy+Sub<Output=T>+Add<Output=T>,f64:From<T> { 
