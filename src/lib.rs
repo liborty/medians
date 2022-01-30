@@ -1,7 +1,10 @@
 use std::ops::{Add,Sub};
+//use std::fmt::Write;
 use anyhow::{Result,bail};
 // const ACCURACY:f64 = 1e-4;
 
+/// Helper function to copy and cast entire &[T] to Vec<f64>.
+/// Like the standard .to_vec() method but also casts to f64 end type
 fn tofvec<T>(set:&[T]) -> Vec<f64> where T:Copy, f64:From<T> {
     set.iter().map(|s| f64::from(*s)).collect()
 }
@@ -21,6 +24,7 @@ fn odd_naive_median(s:&mut [f64]) -> f64 {
     s[mid]
 }
 /// Median of a &[T] slice by sorting
+/// Works slowly but gives the exact results
 /// # Example
 /// ```
 /// use medians::naive_median;
@@ -38,7 +42,10 @@ pub fn naive_median<T>(set:&[T]) -> Result<f64>
         else { odd_naive_median(&mut s) })  
 }
 
-pub fn fast_median<T>(set:&[T]) -> Result<f64> 
+/// Iterative median based on 1D case of the modified nD
+/// Weiszfeld algorithm. Converges quickly to the inner radius
+/// but the problem remains how to get the final exact values.
+pub fn w_median<T>(set:&[T]) -> Result<f64> 
     where T: Copy,f64:From<T> {
     let n = set.len();    
     if n == 0 { bail!("empty vector!"); };
@@ -52,14 +59,19 @@ pub fn fast_median<T>(set:&[T]) -> Result<f64>
 }
 
 // iterative move towards the median
-fn mv(s:&[f64],x:f64) -> (f64,f64) { 
+fn mv(s:&[f64],x:f64) -> (i64,f64) { 
     let mut recipsum = 0_f64;
-    let mut sigsum = 0_f64;
+    let mut sigsum = 0_i64;
     for &s in s {
         let d = s-x;
         if d.is_normal() {
-            recipsum += 1./(d.abs());
-            sigsum += d.signum()
+            if d > 0. {
+            recipsum += 1./d;
+            sigsum += 1;
+            } else {
+            recipsum += 1./-d;
+            sigsum -= 1;
+            }
         }
     }
     (sigsum,recipsum)
@@ -69,7 +81,7 @@ fn mv(s:&[f64],x:f64) -> (f64,f64) {
 /// (absolute value of)
 pub fn mederror(s:&[f64],x:f64) -> f64 {
     let (sn,rec) = mv(s,x);
-    (sn/rec).abs()
+    (sn as f64/rec).abs()
 }  
 
 fn odd_median(s:&[f64],mean:f64) -> f64 { 
@@ -80,7 +92,7 @@ fn odd_median(s:&[f64],mean:f64) -> f64 {
         let (sigs,recs) = mv(s,gm); 
         let mv = (sigs as f64)/recs;
         gm += mv; 
-        if sigs.abs() < 3.0 { break gm };   
+        if sigs.abs() < 2 { break gm };
     } 
 }
 
@@ -92,13 +104,13 @@ fn even_median(s:&[f64],mean:f64) -> f64 {
         let (sigs,recs) = mv(s,gm); 
         let mv = (sigs as f64)/recs;
         gm += mv; 
-        if sigs.abs() < 2.0 { break gm };   
+        if sigs.abs() == 0 { break gm };   
     } 
 }
 
-/// Fast approximate median of &[T] slice 
+/// Approximate median of &[T] slice by indexing
 /// Apply .floor() to the result for integer end types
-pub fn indxmedian<T>(set:&[T]) -> Result<f64>
+pub fn i_median<T>(set:&[T]) -> Result<f64>
     where T: PartialOrd+Copy+Sub<Output=T>+Add<Output=T>,f64:From<T> { 
     let n = set.len();
     match n {

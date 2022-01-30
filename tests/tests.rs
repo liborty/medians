@@ -4,43 +4,56 @@
 
 use devtimer::DevTime;
 use anyhow::Result;
-use medians::{naive_median,fast_median,mederror};
+use medians::{naive_median,w_median,i_median,mederror};
 use random_number::random_fill;
 
+const GR:&str = "\x1B[01;92m";
+const UNGR:&str = "\x1B[0m";
+
 #[test]
-fn naive() -> Result<()> {
-   let v1 = vec![1_f64,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.,15.,16.,17.]; 
-   println!("{:?}",v1);
-   println!("Naive Median:\t {}",naive_median(&v1).unwrap());
-   println!("Fast Median: \t {}",fast_median(&v1).unwrap());
+fn naive() -> Result<()> { 
    let d = 10000_usize;
-   let n = 10_usize;
-   println!("\nTesting on a set of {} random f64 vectors of length {} each",n,d); 
+   let n = 12_usize;
+   println!("\nTesting on a set of {} random f64 vectors of length {} each\n",n,d); 
    let mut v = vec![0f64;333];
    let mut n_time = 0_u128;
-   let mut f_time = 0_u128;
-   let mut n_error = 0_f64;
-   let mut f_error = 0_f64;     
+   let mut w_time = 0_u128;
+   let mut i_time = 0_u128;
+   // let mut n_error = 0_f64;
+   let mut w_error = 0_f64;  
+   let mut i_error = 0_f64;     
    let mut n_timer = DevTime::new_simple();
-   let mut f_timer = DevTime::new_simple();
+   let mut w_timer = DevTime::new_simple();
+   let mut i_timer = DevTime::new_simple();
    for _i in 0..n {
       random_fill!(v);
-      f_timer.start();
-      let f_med = fast_median(&v).unwrap();
-      f_timer.stop();   
-      f_time += f_timer.time_in_nanos().unwrap();
-      f_error += mederror(&v,f_med);   
+
       n_timer.start();
       let n_med = naive_median(&v).unwrap();
       n_timer.stop();
       n_time += n_timer.time_in_nanos().unwrap();
-      n_error += mederror(&v,n_med);    
-      println!("Medians: {} {}",n_med,f_med);
-   }
-   let totaltime = (f_time + n_time) as f64;
-   let tbal = 100_f64*(f_time as f64 - n_time as f64);
-   println!("Total Time {} seconds, new time is {:6.2}%\nNaive errors: {}\nFast errors {}",
-      totaltime/1e9,tbal/totaltime,n_error,f_error);
+      // n_error += mederror(&v,n_med);
+
+      w_timer.start();
+      let w_med = w_median(&v).unwrap();
+      w_timer.stop();   
+      w_time += w_timer.time_in_nanos().unwrap();
+      w_error += mederror(&v,w_med);
+
+      i_timer.start();
+      let i_med = i_median(&v).unwrap();
+      i_timer.stop();
+      i_time += i_timer.time_in_nanos().unwrap();
+      i_error += mederror(&v,i_med); 
+
+      println!("Medians: {} {} {}",n_med,w_med,i_med);
+   } 
+   let mut tbal = 100_f64*(w_time as f64 - n_time as f64);
+   println!("\nw_median versus naive_median {}time: {:6.2}% errors: {:.8}{}",
+      GR,tbal/n_time as f64,w_error, UNGR);
+   tbal = 100_f64*(i_time as f64 - n_time as f64);
+   println!("i_median versus naive_median {}time: {:6.2}% errors: {:.8}{}",
+      GR,tbal/n_time as f64,i_error,UNGR);
    Ok(())
 }
  
