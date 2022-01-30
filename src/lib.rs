@@ -1,5 +1,5 @@
 use std::ops::{Add,Sub};
-//use std::fmt::Write;
+use std::cmp::Ordering;
 use anyhow::{Result,bail};
 // const ACCURACY:f64 = 1e-4;
 
@@ -9,11 +9,13 @@ fn tofvec<T>(set:&[T]) -> Vec<f64> where T:Copy, f64:From<T> {
     set.iter().map(|s| f64::from(*s)).collect()
 }
 
-/// median absolute differences for comparisons
-/// the smaller value the better
-pub fn mad(s: &[f64], m:f64) -> f64 {
-    s.iter().map(|&si| (si-m).abs()).sum()
-}
+/// median absolute differences 
+/// minimised by any point within the inner pair for even sets
+/// and by the median member point for odd sets
+pub fn mad<T>(s: &[T], m:f64) -> f64 
+    where T: Copy,f64:From<T> {
+    s.iter().map(|&si| (f64::from(si) - m).abs()).sum()   
+ }
 
 /// Median of a &[T] slice by sorting
 /// Works slowly but gives the exact results
@@ -50,8 +52,8 @@ fn odd_naive_median(s:&mut [f64]) -> f64 {
 }
 
 /// Iterative median based on 1D case of the modified nD
-/// Weiszfeld algorithm. Converges quickly to the inner radius
-/// but the problem remains how to get the final exact values.
+/// Weiszfeld algorithm. However, for large sets, it is 
+/// slower than the naive median.
 pub fn w_median<T>(set:&[T]) -> Result<f64> 
     where T: Copy,f64:From<T> {
     let n = set.len();    
@@ -72,24 +74,12 @@ fn next(s:&[f64],x:f64) -> (i64,f64) {
     for &si in s {
         let d = si-x;
         if d.is_normal() {
-            if d > 0. {
-            recipsum += 1./d;
-            sigsum += 1;
-            } else {
-            recipsum += 1./-d;
-            sigsum -= 1;
-            } 
+            if d > 0_f64 { recipsum += 1./d; sigsum += 1; }
+            else if d < 0_f64 { recipsum += 1./-d; sigsum -= 1; }; 
         } 
     }
     (sigsum,recipsum)
 }
-
-/// Approximate median error for testing
-/// (absolute value of)
-pub fn mederror(s:&[f64],x:f64) -> f64 {
-    let (sn,rec) = next(s,x);
-    (sn as f64/rec).abs()
-}  
 
 fn odd_median(s:&[f64],mean:f64) -> f64 { 
     let n = s.len();
@@ -97,11 +87,13 @@ fn odd_median(s:&[f64],mean:f64) -> f64 {
     let mut gm = mean;
     loop {
         let (sigs,recs) = next(s,gm);  
-        if sigs.abs() < 3 {
-            if sigs > 0 { break nearestgt(&s, gm) }
-            else if sigs < 0 { break nearestlt(&s, gm) }
-                   else { break gm }   // exact hit ? 
-        }; 
+        if sigs.abs() < 3 { 
+            break match sigs.cmp(&0_i64) {
+                Ordering::Greater => nearestgt(s, gm),
+                Ordering::Less => nearestlt(s, gm),
+                Ordering::Equal => gm
+            }
+        } 
         gm += (sigs as f64)/recs; 
     }
 }
@@ -113,12 +105,13 @@ fn even_median(s:&[f64],mean:f64) -> f64 {
     loop {
         let (sigs,recs) = next(s,gm); 
         gm += (sigs as f64)/recs;
-        if sigs.abs() < 2 { break gm };   
+        if sigs.abs() < 2 { 
+            let (lt,gt) = bracket(s, gm);
+            break (lt+gt)/2.0 };   
     } 
 }
 
 /// Approximate median of &[T] slice by indexing
-/// Apply .floor() to the result for integer end types
 pub fn i_median<T>(set:&[T]) -> Result<f64>
     where T: PartialOrd+Copy+Sub<Output=T>+Add<Output=T>,f64:From<T> { 
     let n = set.len();
@@ -128,51 +121,38 @@ pub fn i_median<T>(set:&[T]) -> Result<f64>
         2 => return Ok(f64::from(set[0]+set[1])/2.0),
         _ => {}
     } 
-    let s = tofvec(set); // makes an f64 mutable copy
+    // let s = tofvec(set); // makes an f64 mutable copy
     // find minimum and maximum
-    let mut x1 = s[0]; 
+    let mut x1 = set[0]; 
     let mut x2 = x1;
-    s.iter().skip(1).for_each(|&si| {
-        if si < x1 { x1 = si } 
-        else if si > x2 { x2 = si }; 
+    set.iter().skip(1).for_each(|&s| {
+        if s < x1 { x1 = s } 
+        else if s > x2 { x2 = s }; 
     });
     // linear transformation from [min,max] data values to [0,n-1] indices
     // by precomputed scale factor hashf
-    let hashf = (n-1) as f64 / (x2-x1); 
+    let hashf = (n-1) as f64 / f64::from(x2-x1); 
     // histogram (probability density function)
-    let mut freqvec = vec![0_usize;n];
+    let mut freqvec = vec![Vec::new();n];
     // count items in ech equal bucket of values
-    for si in &s { freqvec[((si-x1)*hashf).floor()as usize] += 1 }
-     // find index just after the midpoint of cpdf
-    let mut freqsum = 0.;
-    let mut indx = 0;
-    let nhalf = n as f64/2.0;
-    for (i,f) in freqvec.iter().enumerate() {
-        freqsum += *f as f64;
-        if freqsum > nhalf { indx = i; break } 
-    }; 
-    // how far have we overshot as a proportion of this (middle) bucket?
-    // this is just an interpolation, hence the residual errors
-    // let fx1 = (freqsum - nhalf) as f64;
-    // let fx0 = freqvec[indx] as f64 - fx1;
-    // let denom = freqvec[indx] as f64 - 2.0*fx1;
-    //if denom.is_normal() {
-    //    Ok( minf + (indx as f64)/hashit + fx0/denom/hashit ) }
-
-    // transformed back to the original range
-    // approximate but fast
-    // let approxmed = x1 + (indx as f64)/hashf; // -(freqsum-nhalf)/(freqvec[indx]as f64))
-
-    Ok( if freqvec[indx] < 2 { nearestlt(&s,x1 + (indx as f64)/hashf) } 
-    else { x1 + ((indx as f64)-0.5)/hashf } )
-//    if freqvec[indx] == 2 { }
-//   }
-//    Ok ( 
-//        if (n & 1) == 0 { 
-//            let (lt,gt) = nearestbracket(&s,approxmed);
-//            (lt+gt)/2.0 
-//        } // even median
-//        else {  } )
+    for &si in set { freqvec[(f64::from(si-x1)*hashf).floor()as usize].push(si) }
+    // find index just after the midpoint of cpdf
+    let mut freqsum = 0_usize;
+    let mut res = 0_f64;
+    for v in freqvec { 
+        freqsum += v.len();    
+        if 2*freqsum > n {  
+            let vlen = v.len();
+            let needed = ((n/2)as f64 - freqsum as f64 + vlen as f64).floor()as usize; 
+            if vlen == 1 { res  = f64::from(v[0]); break }; 
+            let mut midset = tofvec(&v); 
+            midset.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap()); 
+            // now the tricky even set that needs two points
+            if (n & 1) == 0 && needed > 0 { res = (midset[(needed as i64 -1)as usize]+midset[needed])/2.0; break };
+            res = midset[needed];
+            break } 
+    };
+    Ok(res)
 }
 
 fn nearestlt(set:&[f64],x:f64) -> f64 {
@@ -193,7 +173,7 @@ fn nearestgt(set:&[f64],x:f64) -> f64 {
     best  
 }
 
-fn nearestbracket(set:&[f64],x:f64) -> (f64,f64) {
+fn bracket(set:&[f64],x:f64) -> (f64,f64) {
     let mut bestlt = f64::MIN;
     let mut bestgt = f64::MAX;
     for &s in set {
