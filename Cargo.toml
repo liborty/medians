@@ -22,7 +22,9 @@ maintenance = { status = "actively-developed" }
 [lib]
 [dependencies]
 anyhow = "^1"
+indxvec = { path = "../indxvec" }
+# indxvec = "^1"
 
 [dev-dependencies]
 devtimer = "^4"
-random-number = "^0.1"
+ran = "^0.2"
