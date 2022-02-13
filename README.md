@@ -27,6 +27,6 @@ is relatively slow but is a useful baseline for comparisons. It gives reliable a
 * `w_median`  
 is a specialisation of n dimensional `gmedian` from [rstats](https://github.com/liborty/rstats) to one dimensional case. It is iterative and thus even slower than `naive_median` (over large sets of the order of thousands of items).
 
-* `i_median` is consistently faster (by about 50%) than any of the above.
+* `hash_median` is often faster than the above.
 
 There is at least one more algorithm in the pipeline.
