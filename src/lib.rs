@@ -1,7 +1,7 @@
 use std::ops::Sub;
 use std::cmp::Ordering;
-use anyhow::{Result,bail};
-use indxvec::{tof64, merge::{hashsort}};
+// use anyhow::{Result,bail};
+use indxvec::{here,tof64,merge::{hashsort}};
 
 fn nearestlt(set:&[f64],x:f64) -> f64 {
     let mut best = f64::MIN;
@@ -35,47 +35,58 @@ fn bracket(set:&[f64],x:f64) -> (f64,f64) {
 }
 
 /// Median of a &[T] slice by sorting
-/// Works slowly but gives the exact results
+/// Works slowly but gives exact results
+/// Sorts its mutable slice argument as a side effect
 /// # Example
 /// ```
 /// use medians::naive_median;
-/// let v = vec![1_u8,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
-/// let res = naive_median(&v).unwrap();
+/// let mut v = vec![1_u8,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+/// let res = naive_median(&mut v);
 /// assert_eq!(res,8_f64);
 /// ```
-pub fn naive_median<T>(set:&[T]) -> Result<f64>
-    where T: Copy,f64:From<T> {
-    let n = set.len();
-    if n == 0 { bail!("empty vector!"); };
-    let mut s = tof64(set); // makes an f64 mutable copy
-    // test if n is even
-    Ok( if (n & 1) == 0 { even_naive_median( &mut s) }
-        else { odd_naive_median(&mut s) })
+pub fn naive_median<T>(s:&mut [T]) -> f64
+    where T: Copy+PartialOrd,f64:From<T> {
+    let n = s.len();
+    if n == 0 { panic!("{} empty vector!",here!()); };
+    if n == 1 { return f64::from(s[0]); };
+    if n == 2 { return (f64::from(s[0])+f64::from(s[1]))/2.0; }; 
+    s.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap()); // fastest Rust sort
+    let mid = s.len()/2; // midpoint
+    if (n & 1) == 0 { (f64::from(s[mid-1]) + f64::from(s[mid])) / 2.0 } // s is even
+    else { f64::from(s[mid]) } // s is odd     
 }
 
-fn even_naive_median(s:&mut [f64]) -> f64 {
-    let mid = s.len()/2;
-    if mid == 1 { return (s[0]+s[1])/2.0; }; // original length == 2
-    s.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
-    // even functions return the mean of the two central elements
-    (s[mid-1] + s[mid]) / 2.0
-}
-fn odd_naive_median(s:&mut [f64]) -> f64 {
-    let mid = s.len()/2;
-    if mid == 0 { return s[0]; }; // original length == 1
-    s.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
-    // odd functions return the value of the middle element
-    s[mid]
-}
+/*/
+pub fn hash_medianu8(s:&[u8]) -> f64 {
+    let n = s.len();
+    if n == 0 { panic!("{} empty vector!",here!()); };
+    if n == 1 { return f64::from(s[0]); };
+    if n == 2 { return (f64::from(s[0])+f64::from(s[1]))/2.0; };
+    let mut hist = vec![0_usize,256];
+    for &si in s { hist[si as usize] += 1 }; 
+    let mid = s.len()/2; // midpoint
+    let mut totcount = 0_usize;
+    for (i,&freq) in hist.iter().enumerate() { 
+        totcount += freq;
+        if totcount < mid-1 { continue; };
+        // in the middle section now
+        if (n & 1) == 0 {
+            if totcount == mid-1 {  }
 
-pub fn hash_median<T>(set:&[T],min:f64,max:f64) -> Result<f64>
+        
+    }
+    if (n & 1) == 0 { (f64::from(s[mid-1]) + f64::from(s[mid])) / 2.0 } // s is even
+    else { f64::from(s[mid]) } // s is odd     
+}
+*/
+
+pub fn hash_median<T>(set:&[T],min:f64,max:f64) -> f64
     where T: Copy+PartialOrd+Sub<Output=T>, f64:From<T> {
     let n = set.len();
-    if n == 0 { bail!("empty vector!"); };
-    // let s = tof64(set); // makes an f64 mutable copy
+    if n == 0 { panic!("{} empty vector!",here!()); };
     // test if n is even
-    Ok( if (n & 1) == 0 { even_hash_median(set,min,max) }
-        else { odd_hash_median(set,min,max) })
+    if (n & 1) == 0 { even_hash_median(set,min,max) }
+        else { odd_hash_median(set,min,max) }
 }
 
 fn even_hash_median<T>(s:&[T],min:f64,max:f64) -> f64 
@@ -96,20 +107,86 @@ fn odd_hash_median<T>(s:&[T],min:f64,max:f64) -> f64
     f64::from(s[ss[mid]])
 }
 
+
 /// Iterative median based on the modified 1D case
 /// of the modified nD Weiszfeld algorithm.
 /// Now also combined with partitioning.
-pub fn w_median<T>(set:&[T]) -> Result<f64>
+pub fn new_median<T>(set:&[T]) -> f64
     where T: Copy,f64:From<T> {
     let n = set.len();
-    if n == 0 { bail!("empty vector!"); };
+    if n == 0 { panic!("{} empty vector!",here!()); };
+    let mut s = tof64(set); // makes an f64 mutable copy
+    // arithmetic mean as a starting iterative median
+    // let sumx:f64 = s.iter().sum();
+    // let mean = sumx/(n as f64);
+    // test if even or odd
+    if (n & 1) == 0 { 
+        // use the last point to start and make the rest odd
+        let point = s.swap_remove(n-1);
+        neweven_w_median(&s,mean)        
+        }
+        else { newodd_w_median(&s,mean) }
+}
+
+// iterative move towards the median
+fn newnext(s:&[f64],x:f64) -> (i64,f64) {
+    let mut recipsum = 0_f64;
+    let mut sigsum = 0_i64;
+    for &si in s {
+        let d = si-x;
+        if d.is_normal() {
+            if d > 0_f64 { recipsum += 1./d; sigsum += 1; }
+            else if d < 0_f64 { recipsum -= 1./d; sigsum -= 1; };
+        }
+    }
+    recipsum = (sigsum as f64)/recipsum;  
+    (sigsum,recipsum)
+}
+
+fn newodd_w_median(s:&[f64],mean:f64) -> f64 {
+    let n = s.len();
+    if n == 1 { return s[0] };
+    let mut gm = mean;
+    loop {
+        let (sigs,dx) = next(s,gm); 
+        if sigs.abs() < 3 || dx.abs() < 1e-5 {
+            break match sigs.cmp(&0_i64) {
+                Ordering::Greater => nearestgt(s, gm),
+                Ordering::Less => nearestlt(s, gm),
+                Ordering::Equal => gm,   
+            }
+        }
+        gm += dx; 
+    }
+}
+
+fn neweven_w_median(s:&[f64],mean:f64) -> f64 {
+    let n = s.len();
+    if n == 2 { return (s[0]+s[1])/2.0 };
+    let mut gm = mean;
+    loop {
+        let (sigs,dx) = next(s,gm);
+        if sigs.abs() < 2 || dx.abs() < 1e-5 {
+            let (lt,gt) = bracket(s, gm);
+            break (lt+gt)/2.0 }; 
+        gm += dx;  
+    }
+
+
+/// Iterative median based on the modified 1D case
+/// of the modified nD Weiszfeld algorithm.
+/// Now also combined with partitioning.
+pub fn w_median<T>(set:&[T]) -> f64
+    where T: Copy,f64:From<T> {
+    let n = set.len();
+    if n == 0 { panic!("{} empty vector!",here!()); };
     let s = tof64(set); // makes an f64 mutable copy
     // arithmetic mean as a starting iterative median
     let sumx:f64 = s.iter().sum();
     let mean = sumx/(n as f64);
     // test if even or odd
-    Ok( if (n & 1) == 0 { even_w_median(&s,mean) }
-        else { odd_w_median(&s,mean) })
+    if (n & 1) == 0 { even_w_median(&s,mean) }
+        else { odd_w_median(&s,mean) }
 }
 
 // iterative move towards the median
