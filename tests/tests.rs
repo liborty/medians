@@ -27,6 +27,8 @@ fn naive() {
       let v = ranvu8(d);
       let mut vm = vec![0u8;d];
       vm.clone_from(&v);
+      let mut vhash = vec![0u8;d];
+      vhash.clone_from(&v);
       //println!("{}",v.gr());
       //println!("{}",hashsort(&v,0.0,1.0).unindex(&v,true).gr());
       n_timer.start();
@@ -40,9 +42,9 @@ fn naive() {
       w_timer.stop();
       w_time += w_timer.time_in_nanos().unwrap();
       w_error += balance(&v,w_med).abs();
-
+    
       i_timer.start();
-      let i_med = hash_median(&v,min,max);
+      let i_med = hash_median(&mut vhash,min,max);
       i_timer.stop();
       i_time += i_timer.time_in_nanos().unwrap();
       i_error += balance(&v,i_med).abs();

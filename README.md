@@ -11,9 +11,9 @@ Fast new algorithm(s) for finding 1D medians, implemented in Rust.
 
 Finding the medians is a common task in statistics and data analysis. At least it should be, if only it did not take so long.
 
-We argue in [rstats](https://github.com/liborty/rstats) that using the Geometric Median is the most stable way to characterise multidimensional data. There we solved the problem of finding it efficiently in n dimensions by implementing a stable algorithm with good convergence (an improved Weiszfeld algorithm).
+We argue in [rstats](https://github.com/liborty/rstats) that using the Geometric Median is the most stable way to characterise multidimensional data.
 
-That leaves the one dimensional case, where the medians are not used nearly enough either, due to being much slower to determine than the arithmetic mean.
+That leaves the one dimensional case, where the medians are not used nearly enough either, due to being much slower to calculate than the arithmetic mean.
 
 ## The Algorithms
 

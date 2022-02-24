@@ -1,6 +1,6 @@
 [package]
 name = "medians"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["Libor Spacek"]
 edition = "2021"
 description = "Median, Statistical Measures, Mathematics, Statistics"
@@ -25,4 +25,4 @@ anyhow = "^1"
 indxvec = "^1"
 [dev-dependencies]
 devtimer = "^4"
-ran = "^0.2"
+ran = "^0.3"
