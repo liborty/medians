@@ -20,13 +20,13 @@ That leaves the one dimensional case, where the medians are not used nearly enou
 Floyd-Rivest with the 'Median of Medians' approximation is currently considered to be the best algorithm. Here we explore some alternatives:
 
 * `naive_median`  
-is relatively slow but is a useful baseline for comparisons. It gives reliable and exact results. The median can be found simply by sorting the list of data and then picking the midpoint. The only problem with this approach is that, even when using a good quality sort with guaranteed performance, such as Merge Sort, the complexity is O(n log n).
+is relatively slow but is a useful baseline for comparisons. It gives reliable and exact results. The median can be found simply by sorting the list of data and then picking the midpoint. Here using the standard Rust `sort_unstable_by` sort. The only problem with this approach is that, even when using a good quality sort with guaranteed performance, the complexity is O(n log n).
 
     The quest for faster algorithms, with complexity O(n) is motivated by the simple observation that not all items need to be fully sorted.
 
 * `w_median`  
-is a specialisation of n dimensional `gmedian` from [rstats](https://github.com/liborty/rstats) to one dimensional case. It is iterative and thus even slower than `naive_median` (over large sets of the order of thousands of items).
+is a specialisation of n dimensional `gmedian` from [rstats](https://github.com/liborty/rstats) to one dimensional case. It is iterative and on average about twice as fast as the `naive_median`.
 
-* `hash_median` is often faster than the above.
+* `hash_median` uses `hashsort` from `indxvec` crate. It is about 30% faster than the naive median on longer vecs, simply due to `hashsort`. However, for short vecs, up to about 100 items, it is slower.
 
 There is at least one more algorithm in the pipeline.

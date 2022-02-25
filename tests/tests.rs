@@ -9,7 +9,7 @@ use ran::*;
 
 #[test]
 fn naive() {
-   let d = 10001_usize;
+   let d = 100001_usize;
    let n = 12_usize;
    println!("\nTesting on a set of {} random f64 vectors of length {} each\n",n,d);
    let mut n_error = 0_i64;

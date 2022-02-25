@@ -1,5 +1,5 @@
 // use std::ops::Sub;
-use std::cmp::Ordering;
+// use std::cmp::Ordering;
 // use anyhow::{Result,bail};
 use indxvec::{here,tof64,merge::hashsort};
 
@@ -57,6 +57,7 @@ fn nearestgt(set:&[f64],x:f64) -> f64 {
     best
 }
 
+/// used by testing.rs to measure errors
 pub fn balance<T>(s:&[T],x:f64) -> i64 where T: Copy,f64:From<T> {
     let mut bal = 0_i64;
     for &si in s { 
@@ -67,7 +68,7 @@ pub fn balance<T>(s:&[T],x:f64) -> i64 where T: Copy,f64:From<T> {
 }
 
 /// Iterative move towards the median.
-/// Returns ( balance, number of items equal to x,
+/// Returns ( positive imbalance, number of items equal to x,
 /// increment of x position towards the median )
 fn next(s:&[f64],x:f64) -> (i64,i64,f64) {
     let mut recipsum = 0_f64;
@@ -78,7 +79,7 @@ fn next(s:&[f64],x:f64) -> (i64,i64,f64) {
         }
     }
     let balance = right-left;
-    ( balance,s.len() as i64-left-right,(balance as f64)/recipsum )
+    ( balance.abs(),s.len() as i64-left-right,(balance as f64)/recipsum )
 }
 
 
@@ -104,28 +105,45 @@ pub fn w_median<T>(set:&[T]) -> f64
 
 fn odd_w_median(s:&[f64],m:f64) -> f64 {
     let mut gm = m; 
+    let mut lastsig = 0_i64;
     loop {
         let (sigs,eqs,dx) = next(s,gm);  
-        println!("{} {} {} {}",sigs,eqs,gm,dx);
-        if sigs.abs() < 3 { 
-            if eqs > 0 { return gm };
-            return match sigs.cmp(&0_i64) {
-                Ordering::Greater => nearestgt(s, gm),
-                Ordering::Less => nearestlt(s, gm),
-                Ordering::Equal => gm,   
-            }
-        } 
-        gm += dx;
+        // println!("{} {} {} {}",sigs,eqs,gm,dx);
+        // in the midst of the central equal items, return old gm
+        if sigs < eqs { return gm }; 
+        gm += dx; // update gm
+        if (sigs < lastsig) && (sigs >= 3) { // normal converging iteration
+            lastsig = sigs;    
+            continue; 
+        };
+        // not converging much or near the centre already, 
+        // find manually the nearest item in the dx direction
+        if dx > 0. { gm = nearestgt(s, gm); }
+        else if dx < 0. { gm = nearestlt(s, gm); };
+        if sigs < 3 { return gm;  }; // at the centre, return it
+        lastsig = sigs; // otherwise continue with this new value
     }
 }
 
 fn even_w_median(s:&[f64],m:f64) -> f64 {
     let mut gm = m; 
+    let mut lastsig = 0_i64;
     loop {
-        let (sigs,eqs,dx) = next(s,gm);
-        if sigs.abs() < 2 {
-            break (nearestlt(s,gm)+nearestgt(s,gm))/2.0 }; 
-        gm += dx;  
+        let (sigs,eqs,dx) = next(s,gm);  
+        // println!("{} {} {} {}",sigs,eqs,gm,dx);
+        // in the midst of the central equal items, return old gm
+        if sigs < eqs { return gm }; 
+        gm += dx; // update gm
+        if (sigs < lastsig) && (sigs >= 2) { // normal converging iteration
+            lastsig = sigs;    
+            continue; 
+        };
+        // not converging much or near the centre already, 
+        // find manually the nearest item in the dx direction
+        if sigs < 2 { return  (nearestgt(s, gm) + nearestlt(s, gm))/2.;  }; // at the centre, return it
+        lastsig = sigs; // otherwise continue with
+        if dx > 0. { gm = nearestgt(s, gm); }
+        else if dx < 0. { gm = nearestlt(s, gm); };
     }
 }
 
