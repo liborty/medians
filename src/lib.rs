@@ -83,9 +83,8 @@ fn next(s:&[f64],x:f64) -> (i64,i64,f64) {
 }
 
 
-/// Iterative median based on the modified 1D case
+/// Iterative median based on the heavily modified 1D case
 /// of the modified nD Weiszfeld algorithm.
-/// Can sometimes fail to give the best answer
 pub fn w_median<T>(set:&[T]) -> f64
     where T: Copy,f64:From<T> {
     let n = set.len();
