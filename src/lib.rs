@@ -145,6 +145,69 @@ fn even_w_median(s:&[f64],m:f64) -> f64 {
         else if dx < 0. { gm = nearestlt(s, gm); };
     }
 }
+/// Iterative median based on the heavily modified 1D case
+/// of the modified nD Weiszfeld algorithm.
+/// Reducing the target set.
+pub fn wr_median<T>(set:&[T]) -> f64
+    where T: Copy,f64:From<T> {
+    let n = set.len();
+    match n {
+        0 => panic!("{} empty vector!",here!()),
+        1 => return f64::from(set[0]),
+        2 => return f64::from(set[0])+f64::from(set[1])/2.0,
+        _ => {}
+    };
+    let s = tof64(set); // makes an f64 copy
+    // arithmetic mean as a starting iterative median 
+    let sumx:f64 = s.iter().sum();
+    let mean = sumx/(n as f64); 
+    if (n & 1) == 0 { even_wr_median(&s,0,n,mean) } 
+    else { odd_wr_median(&s,0,n,mean) }
+}
+
+fn odd_wr_median(s:&[f64],i:usize,n:usize,m:f64) -> f64 {
+    let mut gm = m; 
+    let mut lastsig = 0_i64;
+    loop {
+        let (sigs,eqs,dx) = next(s,gm);  
+        // println!("{} {} {} {}",sigs,eqs,gm,dx);
+        // in the midst of the central equal items, return old gm
+        if sigs < eqs { return gm }; 
+        gm += dx; // update gm
+        if (sigs < lastsig) && (sigs >= 3) { // normal converging iteration
+            lastsig = sigs;    
+            continue; 
+        };
+        // not converging much or near the centre already, 
+        // find manually the nearest item in the dx direction
+        if dx > 0. { gm = nearestgt(s, gm); }
+        else if dx < 0. { gm = nearestlt(s, gm); };
+        if sigs < 3 { return gm;  }; // at the centre, return it
+        lastsig = sigs; // otherwise continue with this new value
+    }
+}
+
+fn even_wr_median(s:&[f64],i:usize,n:usize,m:f64) -> f64 {
+    let mut gm = m; 
+    let mut lastsig = 0_i64;
+    loop {
+        let (sigs,eqs,dx) = next(s,gm);  
+        // println!("{} {} {} {}",sigs,eqs,gm,dx);
+        // in the midst of the central equal items, return old gm
+        if sigs < eqs { return gm }; 
+        gm += dx; // update gm
+        if (sigs < lastsig) && (sigs >= 2) { // normal converging iteration
+            lastsig = sigs;    
+            continue; 
+        };
+        // not converging much or near the centre already, 
+        // find manually the nearest item in the dx direction
+        if sigs < 2 { return  (nearestgt(s, gm) + nearestlt(s, gm))/2.;  }; // at the centre, return it
+        lastsig = sigs; // otherwise continue with
+        if dx > 0. { gm = nearestgt(s, gm); }
+        else if dx < 0. { gm = nearestlt(s, gm); };
+    }
+}
 
 /* 
 
