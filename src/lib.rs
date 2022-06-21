@@ -1,7 +1,7 @@
 // use std::ops::Sub;
 // use std::cmp::Ordering;
 // use anyhow::{Result,bail};
-use indxvec::{here,tof64,merge::hashsort};
+use indxvec::{here,tof64,Mutsort,Vecops};
 
 /// Median of a &[T] slice by sorting
 /// Works slowly but gives exact results
@@ -33,41 +33,78 @@ pub fn hash_median<T>(s:&mut [T],min:f64,max:f64) -> f64
     if n == 0 { panic!("{} empty vector!",here!()); };
     if n == 1 { return f64::from(s[0]); };
     if n == 2 { return (f64::from(s[0])+f64::from(s[1]))/2.0; }; 
-    hashsort(s,min,max); 
+    s.muthashsort(min,max); 
     let mid = s.len()/2; // midpoint (floors odd sizes)
     if (n & 1) == 0 { (f64::from(s[mid-1]) + f64::from(s[mid])) / 2.0 } // s is even
-    else { f64::from(s[mid]) } // s is odd     
+    else { f64::from(s[mid]) } // s is odd         
 }
 
-fn nearestlt(set:&[f64],x:f64) -> f64 {
-    let mut best = f64::MIN;
-    for &s in set {
-        if s > x { continue }; 
-        if s > best { best = s };
-    }
-    best
+fn part(s:&[f64],pivot:f64) -> (Vec<f64>,Vec<f64>) {
+    let mut ltset = Vec::new();
+    let mut gtset = Vec::new();
+    for &f in s { 
+        if f < pivot { ltset.push(f); } else { gtset.push(f); };
+    };
+    (ltset,gtset)
 }
 
-fn nearestgt(set:&[f64],x:f64) -> f64 {
-    let mut best = f64::MAX;
-    for &s in set {
-        if s < x { continue }; 
-        if s < best { best = s };
-    }
-    best
+pub fn r_median<T>(set:&[T],min:f64,max:f64) -> f64 
+    where T: Copy+PartialOrd,f64:From<T> {
+    let s = tof64(set); // makes an f64 copy
+    let n = set.len();
+    if n == 0 { panic!("{} empty vector!",here!()) };
+    if (n & 1) == 0 { 
+        r_med_even(&s,n/2,min,max) } 
+        else { r_med_odd(&s,n/2,(min+max)/2.0,min,max) }
 }
 
-/// used by testing.rs to measure errors
-pub fn balance<T>(s:&[T],x:f64) -> i64 where T: Copy,f64:From<T> {
-    let mut bal = 0_i64;
-    for &si in s { 
-        let d = f64::from(si)-x;
-        bal += d.signum() as i64;
-    }
-    bal
+/// Simple reducing sets median
+/// Need is a count of items from start of set to median position, if set was sorted
+/// using proportionally subdivided data range as a pivot.
+fn r_med_odd(set:&[f64],need:usize,pivot:f64,min:f64,max:f64) -> f64 { 
+
+    if need == 0 { return set.mint() }; 
+    let n = set.len();
+    if need == n { return set.maxt() };
+    if n == 0  { panic!("{} empty vector!", here!()); }; 
+
+    let (ltset,gtset) = part(set,pivot);
+    let ltlen = ltset.len();
+    let gtlen = gtset.len();
+    println!("Need: {}, Pivot {:5.2}, minmax: {:5.2},{:5.2} partitions: {}, {}",need,pivot,min,max,ltlen,gtlen);
+
+    if ltlen < need {
+        let newneed = need - ltlen;
+        if newneed == 1 { return gtset.mint() };
+        let newpivot = if ltlen == 0 { (pivot+max)/2.0 } else { pivot + (max-pivot)*(newneed as f64)/(gtlen as f64)};
+        return r_med_odd(&gtset, newneed, newpivot,pivot,max);
+    };
+    if ltlen == need { return ltset.maxt() }; 
+    let newpivot = if gtlen == 0 { (min+pivot)/2.0 } else { min + (pivot-min)*(need as f64)/(ltlen as f64) };
+    r_med_odd(&ltset, need, newpivot, min, pivot ) 
 }
 
-/// Iterative move towards the median.
+/// Simple reducing sets median
+/// Need is a count of items from start of set to median position, if set was sorted
+/// using proportionally subdivided data range as a pivot.
+fn r_med_even(set:&[f64],need:usize,min:f64,max:f64) -> f64 { 
+    match set.len() {
+        0 => panic!("{} empty vector!", here!()),
+        1 => return set[0],
+        2 => return (set[0]+set[1])/2.0,
+        _ => {} };
+    
+    let pivot = set[need-1];
+    let (ltset,eqset,gtset) = set.partition(pivot);
+    let ltlen = ltset.len();
+    if ltlen > need { return r_med_even(&ltset, need, min, max ) };    
+    let eqlen = eqset.len(); 
+    if ltlen+eqlen > need { return r_med_even(&eqset, need-ltlen, min, max ) };
+    r_med_even(&gtset, need-ltlen-eqlen, min, max)
+}
+
+
+/// Iterative move towards the median. Used by w_medians
 /// Returns ( positive imbalance, number of items equal to x,
 /// increment of x position towards the median )
 fn next(s:&[f64],x:f64) -> (i64,i64,f64) {
@@ -82,6 +119,25 @@ fn next(s:&[f64],x:f64) -> (i64,i64,f64) {
     ( balance.abs(),s.len() as i64-left-right,(balance as f64)/recipsum )
 }
 
+/// Used by w_medians
+fn nearestlt(set:&[f64],x:f64) -> f64 {
+    let mut best = f64::MIN;
+    for &s in set {
+        if s > x { continue }; 
+        if s > best { best = s };
+    }
+    best
+}
+
+/// Used by w_medians
+fn nearestgt(set:&[f64],x:f64) -> f64 {
+    let mut best = f64::MAX;
+    for &s in set {
+        if s < x { continue }; 
+        if s < best { best = s };
+    }
+    best
+}
 
 /// Iterative median based on the heavily modified 1D case
 /// of the modified nD Weiszfeld algorithm.
@@ -145,6 +201,8 @@ fn even_w_median(s:&[f64],m:f64) -> f64 {
         else if dx < 0. { gm = nearestlt(s, gm); };
     }
 }
+/*
+
 /// Iterative median based on the heavily modified 1D case
 /// of the modified nD Weiszfeld algorithm.
 /// Reducing the target set.
@@ -208,8 +266,6 @@ fn even_wr_median(s:&[f64],i:usize,n:usize,m:f64) -> f64 {
         else if dx < 0. { gm = nearestlt(s, gm); };
     }
 }
-
-/* 
 
 /// swap two slice items if they are out of ascending order
 fn compswap<T>(s: &mut [T], i1: usize, i2: usize) 
