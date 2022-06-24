@@ -216,3 +216,11 @@ pub fn median<T>(set:&[T]) -> f64 where T: Copy+PartialOrd,f64:From<T> {
     if n < 107 { w_median(set)}
     else { r_median(set)} 
 }
+
+/// median 'big switch' chooses the best algorithm for a given length of set
+pub fn medianf64(set:&[f64]) -> f64 {
+    let n = set.len();
+    if n == 0 { panic!("{} empty vector!",here!()) };
+    if n < 107 { w_median(set)}
+    else { r_median(set)} 
+}

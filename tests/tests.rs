@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
-use medians::{naive_median,w_median,r_median,median};
+use medians::{naive_median,w_median,r_median,median,medianf64};
 use indxvec::printing::*;
 use ran::{*,generators::*};
 
@@ -20,7 +20,7 @@ fn balance<T>(s:&[T],x:f64) -> i64 where T: Copy,f64:From<T> {
 fn magnitudes() { 
     let n = 10_usize; // number of vectors to test for each magnitude
     set_seeds(7777777777_u64);   // intialise random numbers generator
-    for d in [10,100,1000,10000,100000,1000000] {
+    for d in [10,100,1000,10000,100000] {
         let mut n_error = 0_i64;
         let mut w_error = 0_i64; 
         let mut r_error = 0_i64;
@@ -56,7 +56,7 @@ fn magnitudes() {
             r_error += balance(&v,r_med).abs();
 
             h_timer.start();
-            let med = median(&v);
+            let med = medianf64(&v);
             h_timer.stop();
             h_time += h_timer.time_in_nanos().unwrap();
             h_error += balance(&v,med).abs();
@@ -88,7 +88,7 @@ fn magnitudes() {
             r_error += balance(&v,r_med).abs();
 
             h_timer.start();
-            let med = median(&v);
+            let med = medianf64(&v);
             h_timer.stop();
             h_time += h_timer.time_in_nanos().unwrap();
             h_error += balance(&v,med).abs();
