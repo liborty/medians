@@ -13,20 +13,20 @@ Finding the medians is a common task in statistics and data analysis. At least i
 
 We argue in [rstats](https://github.com/liborty/rstats) that using the Geometric Median is the most stable way to characterise multidimensional data.
 
-That leaves the one dimensional case, where the medians are not used nearly enough either, due to being much slower to calculate than the arithmetic mean.
+That leaves the one dimensional case, where the medians are not used nearly enough either, due to being much slower to find than the arithmetic mean.
 
 ## The Algorithms
 
 Floyd-Rivest with the 'Median of Medians' approximation is currently considered to be the best algorithm. Here we explore some alternatives:
 
 * `naive_median`  
-is relatively slow but is a useful baseline for comparisons. It gives reliable and exact results. The median can be found simply by sorting the list of data and then picking the midpoint. Here using the standard Rust `sort_unstable_by` sort. The only problem with this approach is that, even when using a good quality sort with guaranteed performance, the complexity is O(n log n).
-
-    The quest for faster algorithms, with complexity O(n) is motivated by the simple observation that not all items need to be fully sorted.
+is a useful baseline for executions time comparisons, which we take as 100%. It gives reliable and exact results. The median is found simply by sorting the list of data and then picking the midpoint. In this case using the fastest standard Rust `sort_unstable_by`. The problem with this approach is that, even when using a good quality sort with guaranteed performance, its complexity is at best O(n log n). The quest for faster median algorithms, with complexity O(n), is motivated by the observation that not all items need to be fully sorted.
 
 * `w_median`  
-is a specialisation of n dimensional `gmedian` from [rstats](https://github.com/liborty/rstats) to one dimensional case. It is iterative and on average about twice as fast as the `naive_median`.
+is a specialisation of n dimensional `gmedian` from [rstats](https://github.com/liborty/rstats) to one dimensional case. It is iterative. It starts at about 84% of naive time for very short vecs. For orders of magnitude 2 to 3 it runs at about 45%. Then it starts slowing down. At the order of 5 and above it becomes actually slower.
 
-* `hash_median` uses `hashsort` from `indxvec` crate. It is about 30% faster than the naive median on longer vecs, simply due to `hashsort`. However, for short vecs, up to about 100 items, it is slower.
+* `r_median` 
+recursively partitions the data around a pivot computed as a secant based on minimum and maximum values.
+Beats all other algorithms on vecs of length 107 upwards. At the order of magnitude 5 it runs at mere 13% of the 'naive' time.
 
 There is at least one more algorithm in the pipeline.

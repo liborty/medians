@@ -2,7 +2,7 @@
 // use std::ops::Sub;
 // use std::cmp::Ordering;
 // use anyhow::{Result,bail};
-use indxvec::{here,tof64,Mutsort,Vecops};
+use indxvec::{here,tof64,Vecops};
 
 /// Median of a &[T] slice by sorting
 /// Works slowly but gives exact results
@@ -24,20 +24,6 @@ pub fn naive_median<T>(s:&mut [T]) -> f64
     let mid = s.len()/2; // midpoint (floors odd sizes)
     if (n & 1) == 0 { (f64::from(s[mid-1]) + f64::from(s[mid])) / 2.0 } // s is even
     else { f64::from(s[mid]) } // s is odd     
-}
-
-/// Exactly the same as naive_median, except uses hashsort, 
-/// which is about 25% faster for >1K items.
-pub fn hash_median<T>(s:&mut [T],min:f64,max:f64) -> f64
-    where T: Copy+PartialOrd,f64:From<T> {
-    let n = s.len();
-    if n == 0 { panic!("{} empty vector!",here!()); };
-    if n == 1 { return f64::from(s[0]); };
-    if n == 2 { return (f64::from(s[0])+f64::from(s[1]))/2.0; }; 
-    s.muthashsort(min,max); 
-    let mid = s.len()/2; // midpoint (floors odd sizes)
-    if (n & 1) == 0 { (f64::from(s[mid-1]) + f64::from(s[mid])) / 2.0 } // s is even
-    else { f64::from(s[mid]) } // s is odd         
 }
 
 fn part(s:&[f64],pivot:f64) -> (Vec<f64>,Vec<f64>) {
