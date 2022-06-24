@@ -1,3 +1,4 @@
+// #![warn(missing_docs)]
 // use std::ops::Sub;
 // use std::cmp::Ordering;
 // use anyhow::{Result,bail};
@@ -48,61 +49,82 @@ fn part(s:&[f64],pivot:f64) -> (Vec<f64>,Vec<f64>) {
     (ltset,gtset)
 }
 
-pub fn r_median<T>(set:&[T],min:f64,max:f64) -> f64 
+/// Recursive Reducing Median
+pub fn r_median<T>(set:&[T]) -> f64 
     where T: Copy+PartialOrd,f64:From<T> {
     let s = tof64(set); // makes an f64 copy
     let n = set.len();
     if n == 0 { panic!("{} empty vector!",here!()) };
-    if (n & 1) == 0 { 
-        r_med_even(&s,n/2,min,max) } 
-        else { r_med_odd(&s,n/2,(min+max)/2.0,min,max) }
+    // starting pivot
+    let (min,max) = s.minmaxt();
+    let pivot = (min+max)/2.;
+    // passing min max just to stop recomputing it
+    if (n & 1) == 0 { r_med_even(&s,n/2,pivot,min,max) } 
+    else { r_med_odd(&s,n/2+1,pivot,min,max) }
 }
 
-/// Simple reducing sets median
-/// Need is a count of items from start of set to median position, if set was sorted
-/// using proportionally subdivided data range as a pivot.
-fn r_med_odd(set:&[f64],need:usize,pivot:f64,min:f64,max:f64) -> f64 { 
-
-    if need == 0 { return set.mint() }; 
+/// Reducing sets median using `minmax()` and secant
+/// with proportionally subdivided data range as a pivot.
+/// Need is a count of items from start of set to anticipated median position
+fn r_med_odd(set:&[f64],need:usize,pivot:f64,setmin:f64,setmax:f64) -> f64 {  
+    if need == 1 { return setmin }; 
     let n = set.len();
-    if need == n { return set.maxt() };
-    if n == 0  { panic!("{} empty vector!", here!()); }; 
+    if need == n { return setmax }; 
 
     let (ltset,gtset) = part(set,pivot);
     let ltlen = ltset.len();
     let gtlen = gtset.len();
-    println!("Need: {}, Pivot {:5.2}, minmax: {:5.2},{:5.2} partitions: {}, {}",need,pivot,min,max,ltlen,gtlen);
+    // println!("Need: {}, Pivot {:5.3}, partitions: {}, {}",need,pivot,ltlen,gtlen);
 
-    if ltlen < need {
+    match need {
+    1 => ltset.mint(),
+    x if x < ltlen => {
+        let max = ltset.maxt();
+        if setmin == max { return ltset[0] }; // all equal, done     
+        let newpivot = setmin + (need as f64)*(max-setmin)/(ltlen as f64);
+        r_med_odd(&ltset, need, newpivot,setmin,max) 
+        },
+    x if x == ltlen => ltset.maxt(),
+    x if x == ltlen+1 => gtset.mint(),
+    x if x == n => gtset.maxt(),  
+    _ => { // need > ltlen
         let newneed = need - ltlen;
-        if newneed == 1 { return gtset.mint() };
-        let newpivot = if ltlen == 0 { (pivot+max)/2.0 } else { pivot + (max-pivot)*(newneed as f64)/(gtlen as f64)};
-        return r_med_odd(&gtset, newneed, newpivot,pivot,max);
-    };
-    if ltlen == need { return ltset.maxt() }; 
-    let newpivot = if gtlen == 0 { (min+pivot)/2.0 } else { min + (pivot-min)*(need as f64)/(ltlen as f64) };
-    r_med_odd(&ltset, need, newpivot, min, pivot ) 
+        let min = gtset.mint(); 
+        if min == setmax { return gtset[0] }; // all equal, done
+        let newpivot = min + (setmax-min)*(newneed as f64)/(gtlen as f64);
+        r_med_odd(&gtset, newneed, newpivot,min,setmax)
+        }
+    }
 }
 
-/// Simple reducing sets median
-/// Need is a count of items from start of set to median position, if set was sorted
-/// using proportionally subdivided data range as a pivot.
-fn r_med_even(set:&[f64],need:usize,min:f64,max:f64) -> f64 { 
-    match set.len() {
-        0 => panic!("{} empty vector!", here!()),
-        1 => return set[0],
-        2 => return (set[0]+set[1])/2.0,
-        _ => {} };
-    
-    let pivot = set[need-1];
-    let (ltset,eqset,gtset) = set.partition(pivot);
+/// Reducing sets median using `minmax()` and secant
+/// with proportionally subdivided data range as a pivot.
+/// Need is a count of items from start of set to anticipated median position
+fn r_med_even(set:&[f64],need:usize,pivot:f64,setmin:f64,setmax:f64) -> f64 {
+    let n = set.len();
+    let (ltset,gtset) = part(set,pivot);
     let ltlen = ltset.len();
-    if ltlen > need { return r_med_even(&ltset, need, min, max ) };    
-    let eqlen = eqset.len(); 
-    if ltlen+eqlen > need { return r_med_even(&eqset, need-ltlen, min, max ) };
-    r_med_even(&gtset, need-ltlen-eqlen, min, max)
+    let gtlen = gtset.len();
+    // println!("Need: {}, Pivot {}, partitions: {}, {}",need,pivot,ltlen,gtlen);
+    match need {
+    // 1 => ltset.mint(),
+    x if x < ltlen => {
+        let max = ltset.maxt();
+        if setmin == max { return ltset[0] }; // all equal, done     
+        let newpivot = setmin + (need as f64)*(max-setmin)/(ltlen as f64);
+        r_med_even(&ltset, need, newpivot,setmin,max) 
+        },
+    x if x == ltlen => (ltset.maxt()+gtset.mint())/2., // at the boundary 
+    x if x == n => gtset.maxt(),  
+    _ => { // need > ltlen
+        let newneed = need - ltlen;
+        let min = gtset.mint(); 
+        if min == setmax { return gtset[0] }; // all equal, done
+        let newpivot = min + (newneed as f64)*(setmax-min)/(gtlen as f64);
+        r_med_even(&gtset, newneed, newpivot,min,setmax)
+        }
+    }
 }
-
 
 /// Iterative move towards the median. Used by w_medians
 /// Returns ( positive imbalance, number of items equal to x,
@@ -202,165 +224,62 @@ fn even_w_median(s:&[f64],m:f64) -> f64 {
     }
 }
 /*
-
-/// Iterative median based on the heavily modified 1D case
-/// of the modified nD Weiszfeld algorithm.
-/// Reducing the target set.
-pub fn wr_median<T>(set:&[T]) -> f64
-    where T: Copy,f64:From<T> {
+/// Median based on hash division
+pub fn hashmed<T>(set:&[T],min:f64,max:f64) -> f64 
+    where T: Copy+PartialOrd,f64:From<T> {
     let n = set.len();
-    match n {
-        0 => panic!("{} empty vector!",here!()),
-        1 => return f64::from(set[0]),
-        2 => return f64::from(set[0])+f64::from(set[1])/2.0,
-        _ => {}
-    };
-    let s = tof64(set); // makes an f64 copy
-    // arithmetic mean as a starting iterative median 
-    let sumx:f64 = s.iter().sum();
-    let mean = sumx/(n as f64); 
-    if (n & 1) == 0 { even_wr_median(&s,0,n,mean) } 
-    else { odd_wr_median(&s,0,n,mean) }
-}
+    if n == 0 { panic!("{} empty vector!",here!()) };
+    let s = tof64(set); // makes a f64 copy 
+    if (n & 1) == 0 { 0. } 
+        else { hashmed_odd(&s,n/2,min,max) }
+}   
 
-fn odd_wr_median(s:&[f64],i:usize,n:usize,m:f64) -> f64 {
-    let mut gm = m; 
-    let mut lastsig = 0_i64;
-    loop {
-        let (sigs,eqs,dx) = next(s,gm);  
-        // println!("{} {} {} {}",sigs,eqs,gm,dx);
-        // in the midst of the central equal items, return old gm
-        if sigs < eqs { return gm }; 
-        gm += dx; // update gm
-        if (sigs < lastsig) && (sigs >= 3) { // normal converging iteration
-            lastsig = sigs;    
-            continue; 
-        };
-        // not converging much or near the centre already, 
-        // find manually the nearest item in the dx direction
-        if dx > 0. { gm = nearestgt(s, gm); }
-        else if dx < 0. { gm = nearestlt(s, gm); };
-        if sigs < 3 { return gm;  }; // at the centre, return it
-        lastsig = sigs; // otherwise continue with this new value
-    }
-}
-
-fn even_wr_median(s:&[f64],i:usize,n:usize,m:f64) -> f64 {
-    let mut gm = m; 
-    let mut lastsig = 0_i64;
-    loop {
-        let (sigs,eqs,dx) = next(s,gm);  
-        // println!("{} {} {} {}",sigs,eqs,gm,dx);
-        // in the midst of the central equal items, return old gm
-        if sigs < eqs { return gm }; 
-        gm += dx; // update gm
-        if (sigs < lastsig) && (sigs >= 2) { // normal converging iteration
-            lastsig = sigs;    
-            continue; 
-        };
-        // not converging much or near the centre already, 
-        // find manually the nearest item in the dx direction
-        if sigs < 2 { return  (nearestgt(s, gm) + nearestlt(s, gm))/2.;  }; // at the centre, return it
-        lastsig = sigs; // otherwise continue with
-        if dx > 0. { gm = nearestgt(s, gm); }
-        else if dx < 0. { gm = nearestlt(s, gm); };
-    }
-}
-
-/// swap two slice items if they are out of ascending order
-fn compswap<T>(s: &mut [T], i1: usize, i2: usize) 
-where T: PartialOrd { if s[i1] > s[i2] { s.swap(i1,i2) } }
-
-    
-/// N recursive hash sort.
-/// Sorts mutable first argument (slice) in place
-/// Requires [min,max], the data range, that must enclose all its values. 
-/// The range is often known in advance. If not, it can be obtained with `minmaxt`.
-pub fn h_median<T>(s: &mut [T], min:f64, max:f64) -> f64
-where T: PartialOrd + Copy, f64:From<T> {
-    if min >= max { panic!("{} data range must be min < max",here!()); };
+/// Does the work for `hashmed`   
+fn hashmed_odd(s: &[f64], need:usize, min:f64, max:f64) -> f64 { 
+    // Recursion termination condition
     let n = s.len();
-    match n {
-        0 => panic!("{} empty input",here!()),
-        1 => f64::from(s[0]),
-        2 => (f64::from(s[0])+f64::from(s[1]))/2.0,
-        3 => {
-            compswap(s,0,1);
-            compswap(s,1,2);
-            compswap(s,0,1);
-            return f64::from(s[1])
-        },
-        _ => if (n & 1) == 0 { h_medr_even(s,0,n,min,max) } 
-            else { h_medr_odd(s,0,n,min,max) }
-    }   
-}
+    if n == 1 { return s[0]; }; // no sorting needed 
+    // hash is a precomputed factor, s.t. ((x-min)*hash).floor() subscripts will be in [0,n]
+    // this is then reduced to [0,n-1] 
+    let hash = n as f64 / (max-min); 
+    let mut buckets:Vec<Vec<f64>> = Vec::new();
 
-fn h_medr_odd<T>(s:&mut [T], i:usize, n:usize, min:f64, max:f64) -> f64
-where T: PartialOrd+Copy, f64:From<T>
-{ 
-    if n == 0 { panic!("{} unexpected zero length",here!())};  
-    // hash is a constant s.t. (x-min)*hash is in [0,n) 
-    // subtracting a small constant stops subscripts quite reaching n 
-    let hash = (n as f64 - 1e-10 ) / (max-min);  
-    let mut freqvec:Vec<Vec<T>> = vec![Vec::new();n];
-    // group current index items into buckets by their associated s[] values
-    for &xi in s.iter().skip(i).take(n) { 
-        freqvec[(hash*(f64::from(xi)-min)).floor() as usize].push(xi);
+    // group data items into buckets, subscripted by the data hash values
+    for xi in s {
+        let mut hashsub = (hash*(xi-min)).floor() as usize; 
+        if hashsub == n { hashsub -= 1; }; 
+        buckets[hashsub].push(*xi);  
     };
-    // count the items in buckets  
-    let mut isub = i;  
-    for v in freqvec.iter() { 
-        let vlen = v.len();
-        if vlen == 0 { continue; };
-        isub += vlen;
-        if isub <= n/2 { continue; };  
-        match vlen { 
-        1 => return f64::from(v[0]),
-        2 => { 
-            if isub == n/2 { return f64::from(v[1]) }
-            else 
-        },
-        3 => {
-            s[isub] = v[0]; s[isub+1] = v[1]; s[isub+2] = v[2];   
-            compswap(s,isub,isub+1);
-            compswap(s,isub+1,isub+2);
-            compswap(s,isub,isub+1);
-            isub += 3;
-        },
-        x if x == n => { 
-            // this bucket alone is populated, 
-            // items in it are most likely all equal
-            // we need not copy v back as no sorting took place
-            let mx = minmax_slice(s,  isub, vlen);
-            if mx.minindex < mx.maxindex {  // not all the same
-                let mut hold = s[i]; // swap minindex to the front
-                s[i] = s[mx.minindex]; 
-                s[mx.minindex] = hold;
-                hold = s[i+n-1]; // swap maxindex to the end
-                s[i+n-1] = s[mx.maxindex]; 
-                s[mx.maxindex] = hold;
-                // recurse to sort the rest, within the new reduced range
-                hashsortr(s,i+1,n-2,f64::from(mx.min),f64::from(mx.max)); 
-            };
-            return; // all items were equal, or are now sorted
-        },
-        _ => { 
-            // first fill the index with the grouped items from v
-            let isubprev = isub;
-            for &item in v { s[isub] = item; isub += 1; }; 
-            let mx = minmax_slice(s,  isubprev, vlen);
-            if mx.minindex < mx.maxindex { // else are all equal 
-                let mut hold = s[isubprev]; // swap minindex to the front
-                s[isubprev] = s[mx.minindex]; 
-                s[mx.minindex] = hold;
-                hold = s[isub-1]; // swap maxindex to the end
-                s[isub-1] = s[mx.maxindex]; 
-                s[mx.maxindex] = hold;
-                // recurse to sort the rest
-                hashsortr(s,isubprev+1,vlen-2,f64::from(mx.min),f64::from(mx.max)); 
-                }; // the items in this bucket were equal or are now sorted but there are more buckets
-            } 
-        } // end of match 
-    } // end of for v
-}
+    let mut cumlen = 0;     // cummulative length of buckets
+    for bucket in buckets.iter() { 
+        let blen = bucket.len(); // size of the current bucket 
+        cumlen += blen;
+        // find the bucket that straddles need: cumlen >= need
+        if cumlen < need { continue; };
+        // needhere is subscript to median in this bucket;
+        let needhere = need+blen-cumlen;
+        // up to two items in a bucket can be done immediately
+        // println!("bucket items: {}",blen);
+        match blen {
+            1 => { return bucket[0]; }, 
+            2 => {  
+                if needhere == 0 { 
+                    if bucket[0] > bucket[1] { return bucket[1]; } else { return bucket[0]; } };
+                if bucket[0] > bucket[1] { return bucket[0]; } else { return bucket[1]; }; },
+            _ => {
+                let mx = bucket.minmax();
+                if mx.min == mx.max { return bucket[0]; } // all are equal, quick result
+                if needhere == 0 { }
+                else {  // not all the same
+                    bucket.mutsorttwo(0,mx.minindex); // swap min to the front
+                    bucket.mutsorttwo(mx.maxindex,blen-1); // and swap max to the end
+                    // recurse to process the rest, within the new reduced range
+                    return hashmed_odd(bucket,needhere,mx.min,mx.max); 
+                };
+            }
+        } // end of match (this bucket) but there may be more
+    }; // end of for (all buckets)
+    panic!("{} should not drop to here",here!());
+    0.0
+} 
 */

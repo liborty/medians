@@ -18,9 +18,78 @@ pub fn balance<T>(s:&[T],x:f64) -> i64 where T: Copy,f64:From<T> {
 }
 
 #[test]
+fn magnitues() { 
+    let n = 10_usize; // number of vectors to test for each magnitude
+    set_seeds(7777777777_u64);   // intialise random numbers generator
+    for d in [10,100,1000,10000,100000] {
+        let mut n_error = 0_i64;
+        let mut w_error = 0_i64; 
+        let mut r_error = 0_i64;
+        let mut n_timer = DevTime::new_simple();
+        let mut w_timer = DevTime::new_simple();  
+        let mut r_timer = DevTime::new_simple();
+        let (mut n_time, mut w_time, mut r_time) = (0_u128, 0_u128, 0_u128); 
+        println!("\nTesting on a set of {} random vectors of length {GR}{}{UN} each\n",n,d);
+        for _ in 0..n {
+            let v = ranvf64_xoshi(d); // random vector
+            let mut vm = vec![0f64;d];
+            vm.clone_from(&v);
+            n_timer.start();
+            let n_med = naive_median(&mut vm);
+            n_timer.stop();
+            n_time += n_timer.time_in_nanos().unwrap();
+            n_error += balance(&v,n_med).abs();
+            w_timer.start();
+            let w_med = w_median(&v);
+            w_timer.stop();
+            w_time += w_timer.time_in_nanos().unwrap();
+            w_error += balance(&v,w_med).abs();          
+      
+            r_timer.start();
+            let r_med = r_median(&v);
+            r_timer.stop();
+            r_time += r_timer.time_in_nanos().unwrap();
+            r_error += balance(&v,r_med).abs();
+            
+            // println!("Even Medians: {:9.6} {:9.6} {:9.6}",n_med,w_med,r_med);
+        };
+        println!("\nTesting odd medians on a set of {} random vectors of length {GR}{}{UN} each\n",n,d+1);
+        for _ in 0..n {
+            let v = ranvf64_xoshi(d+1); // random vector
+            let mut vm = vec![0f64;d+1];
+            vm.clone_from(&v);
+            n_timer.start();
+            let n_med = naive_median(&mut vm);
+            n_timer.stop();
+            n_time += n_timer.time_in_nanos().unwrap();
+            n_error += balance(&v,n_med).abs();
+            w_timer.start();
+            let w_med = w_median(&v);
+            w_timer.stop();
+            w_time += w_timer.time_in_nanos().unwrap();
+            w_error += balance(&v,w_med).abs();          
+      
+            r_timer.start();
+            let r_med = r_median(&v);
+            r_timer.stop();
+            r_time += r_timer.time_in_nanos().unwrap();
+            r_error += balance(&v,r_med).abs();
+            
+            // println!("Odd Medians: {:9.6} {:9.6} {:9.6}",n_med,w_med,r_med);
+        };
+        let mut tbal;
+        println!("\n{GR}Naive m. time: 100%");
+        tbal = 100_f64*(w_time as f64 - n_time as f64);
+        println!("{GR}w_median time: {:6.2}% errors: {:.10}{UN}",100.+tbal/n_time as f64,w_error-n_error); 
+        tbal = 100_f64*(r_time as f64 - n_time as f64);
+        println!("{GR}r_median time: {:6.2}% errors: {:.10}{UN}",100.+tbal/n_time as f64,r_error-n_error)
+    }
+}
+
+#[test]
 fn naive() {
-   let d = 1001_usize;
-   let n = 12_usize;
+   let d = 50_usize;
+   let n = 10_usize;
    println!("\nTesting on a set of {GR}{}{UN} random vectors of length {GR}{}{UN} each\n",n,d);
    let mut n_error = 0_i64;
    let mut w_error = 0_i64;
@@ -36,10 +105,10 @@ fn naive() {
    for _i in 0..n {
       let min = 0_f64;
       let max = 255_f64;
-      let v = ranvu8(d);
-      let mut vm = vec![0u8;d];
+      let v = ranvf64(d);
+      let mut vm = vec![0f64;d];
       vm.clone_from(&v);
-      let mut vhash = vec![0u8;d];
+      let mut vhash = vec![0f64;d];
       vhash.clone_from(&v);
       //println!("{}",v.gr());
       //println!("{}",hashsort(&v,0.0,1.0).unindex(&v,true).gr());
@@ -62,7 +131,7 @@ fn naive() {
       i_error += balance(&v,i_med).abs();
 
       r_timer.start();
-      let r_med = r_median(&vhash,min,max);
+      let r_med = r_median(&vhash);
       r_timer.stop();
       r_time += r_timer.time_in_nanos().unwrap();
       r_error += balance(&v,r_med).abs();
