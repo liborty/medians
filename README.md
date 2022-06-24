@@ -26,7 +26,7 @@ is a useful baseline for executions time comparisons, which we take as 100%. It 
 is a specialisation of n dimensional `gmedian` from [rstats](https://github.com/liborty/rstats) to one dimensional case. It starts at about 84% of naive time for very short vecs. For orders of magnitude 2 to 3 it runs at about 45%. Then it starts slowing down. At the order of 5 and above it becomes actually slower than `naive_median`.
 
 * `r_median`
-recursively partitions the data around a pivot computed by a specialised secant method using minimum and maximum values. Beats all other algorithms on vecs of length 107 upwards. At the order of magnitude 5 it runs at mere 13% of the 'naive' time.
+recursively partitions the data around a pivot computed by a specialised secant method using minimum and maximum values. Beats all other algorithms on vecs of length 107 upwards. At the order of magnitude 6 it runs at only 10% of the 'naive' time.
 
 * `median`
 is the external public entry point. This function is just a 'big switch'. Depending on the length of the input vector, it calls either `w_median` or `r_median` in order to always get the best performance.
