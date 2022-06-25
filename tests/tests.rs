@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
-use medians::{naive_median,w_median,r_median,median,medianf64};
+use medians::{Median,naive_median,w_median,r_median};
 use indxvec::printing::*;
 use ran::{*,generators::*};
 
@@ -33,7 +33,7 @@ fn magnitudes() {
         
         println!("\nTesting medians on a set of {GR}{}{UN} random vectors of length {GR}{}{UN} each",n,d);
         for _ in 0..n {
-            let v = ranvf64_xoshi(d); // random vector
+            let v = ranvf64_xoshi(d); // random vector 
             let mut vm = vec![0f64;d];
             vm.clone_from(&v);
 
@@ -56,11 +56,11 @@ fn magnitudes() {
             r_error += balance(&v,r_med).abs();
 
             h_timer.start();
-            let med = medianf64(&v);
+            let med = v.as_slice().median();            
             h_timer.stop();
             h_time += h_timer.time_in_nanos().unwrap();
             h_error += balance(&v,med).abs();
-            
+            // println!("{}\n\t{}",v.medinfo(),med-v.mad(med));            
             // println!("Even Medians: {:9.6} {:9.6} {:9.6}",n_med,w_med,r_med);
         };
         println!("Testing odd medians on a set of {GR}{}{UN} random vectors of length {GR}{}{UN} each",n,d+1);
@@ -88,7 +88,7 @@ fn magnitudes() {
             r_error += balance(&v,r_med).abs();
 
             h_timer.start();
-            let med = medianf64(&v);
+            let med = v.as_slice().median();
             h_timer.stop();
             h_time += h_timer.time_in_nanos().unwrap();
             h_error += balance(&v,med).abs();
