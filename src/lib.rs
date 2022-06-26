@@ -21,7 +21,7 @@ impl std::fmt::Display for Med {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "median:\n\tLower Q: {}\n\tMedian:  {}\n\tUpper Q: {}\n\tMad:\t{GR}±{}{UN}",
+            "median:\n\tLower Q: {}\n\tMedian:  {}\n\tUpper Q: {}\n\tMad:    {GR}±{}{UN}",
             self.lq.gr(),
             self.median.gr(),
             self.uq.gr(),

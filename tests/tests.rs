@@ -34,6 +34,7 @@ fn magnitudes() {
         println!("\nTesting medians on a set of {GR}{}{UN} random vectors of length {GR}{}{UN} each",n,d);
         for _ in 0..n {
             let v = ranvf64_xoshi(d); // random vector 
+            // println!("{}",v.medinfo());  
             let mut vm = vec![0f64;d];
             vm.clone_from(&v);
 
@@ -59,8 +60,7 @@ fn magnitudes() {
             let med = v.as_slice().median();            
             h_timer.stop();
             h_time += h_timer.time_in_nanos().unwrap();
-            h_error += balance(&v,med).abs();
-            // println!("{}\n\t{}",v.medinfo(),med-v.mad(med));            
+            h_error += balance(&v,med).abs();          
             // println!("Even Medians: {:9.6} {:9.6} {:9.6}",n_med,w_med,r_med);
         };
         println!("Testing odd medians on a set of {GR}{}{UN} random vectors of length {GR}{}{UN} each",n,d+1);
