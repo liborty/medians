@@ -2,7 +2,7 @@
 //! Fast new algorithms for computing medians of 
 //! (one dimensional) vectors
 
-use indxvec::{here,tof64,Vecops,Printing,printing::{GR,UN}};
+use indxvec::{here,Vecops,Printing,printing::{GR,UN}};
 
 #[derive(Default)]
 /// Median, quartiles, mad (median of absolute diffs)
@@ -52,7 +52,6 @@ pub fn naive_median<T>(s:&mut [T]) -> f64
     else { f64::from(s[mid]) } // s is odd     
 }
 
-
 /// Iterative move towards the median. Used by w_medians
 /// Returns ( positive imbalance, number of items equal to x,
 /// increment of x position towards the median )
@@ -97,7 +96,7 @@ pub fn w_median<T>(set:&[T]) -> f64
         1 => f64::from(set[0]),
         2 => f64::from(set[0])+f64::from(set[1])/2.0,
         _ => {
-            let s = tof64(set); // makes an f64 copy
+            let s = set.tof64(); // makes an f64 copy
             // arithmetic mean as a initial iterative median 
             let sumx:f64 = s.iter().sum();
             let mean = sumx/(n as f64); 
@@ -272,7 +271,6 @@ fn medinfo(self) -> Med {
     let mut posdifs:Vec<f64> = Vec::new();
     let mut negdifs:Vec<f64> = Vec::new();
     let med = self.median();
-
     for &s in self {
         let sf = f64::from(s);
         if sf > med { posdifs.push(sf-med) }
