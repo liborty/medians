@@ -5,6 +5,17 @@ use devtimer::{DevTime,SimpleTimer};
 use medians::{Median,naive_median,w_median,r_median};
 use indxvec::printing::*;
 use ran::{*,generators::*};
+use indxvec::{ here, F64, printing::*, Indices, Printing, Vecops, Mutops};
+use ran::*;
+use std::convert::From;
+use times::{benchu8,benchu64,benchf64};
+
+const NAMES:[&str;3] = [ "w_median","r_median","median" ];
+
+const CLOSURESU8:[fn(&[u8]);3] = [
+    |v:&[_]| { w_median(v); }, 
+    |v:&[_]| { r_median(v); }, 
+    |v:&[_]| { v.median(); } ];
 
 /// used to measure errors
 fn balance<T>(s:&[T],x:f64) -> i64 where T: Copy,f64:From<T> {
@@ -14,6 +25,12 @@ fn balance<T>(s:&[T],x:f64) -> i64 where T: Copy,f64:From<T> {
         bal += d.signum() as i64;
     }
     bal
+}
+#[test]
+fn comparison() {
+    set_seeds(7777777777_u64);   // intialise random numbers generator
+    // Rnum encapsulates the type of the data items
+   benchu8(Rnum::newu8(),5,10,&NAMES,&CLOSURESU8); 
 }
 
 #[test]

@@ -55,6 +55,6 @@ pub trait Median<T> {
 
 ## Release Notes
 
-**Version 1.0.0** -  Update to the latest `indxvec` dependency, v. 1.2.10.
+**Version 1.0.0** -  Updated to the latest `indxvec` dependency, v. 1.2.11. Used `times` for tests.
 
 **Version 0.1.2** - The public methods are now in trait Median.

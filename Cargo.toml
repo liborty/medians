@@ -24,4 +24,5 @@ maintenance = { status = "actively-developed" }
 indxvec = "^1"
 [dev-dependencies]
 devtimer = "^4"
-ran = "^0.3"
+ran = "^1"
+times = "^0"
