@@ -2,7 +2,8 @@
 #![allow(dead_code)]
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
-use medians::{Median,naive_median,w_median,r_median};
+use medians::Median;
+use medians::algos::{naive_median,w_median,r_median};
 use indxvec::printing::*;
 use ran::{*,generators::*};
 use indxvec::{ here, F64, printing::*, Indices, Printing, Vecops, Mutops};
