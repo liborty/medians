@@ -45,7 +45,7 @@ is the main public entry point, implemented as a method of trait `Median`. It is
 ```rust
 pub trait Median<T> {
     /// Finds the median of `&[T]`, fast
-    fn median(&self) -> f64;
+    fn median(self) -> f64;
     /// Median of absolute differences (MAD).
     fn mad(self,m:f64) -> f64;
     /// Median, quartiles and MAD
@@ -55,7 +55,9 @@ pub trait Median<T> {
 
 ## Release Notes
 
-**Version 1.0.1** - Added for convenience struct `MStats` and method `medstats` returning it. It holds here the median and MAD. More generally, any `centre` and `dispersion`. Moved the low level and private functions to module `algos.rs`. Updated `times` dev-dependency.
+**Version 1.0.2** - Removed unnecessary extra reference from method `median`.
+
+**Version 1.0.1** - Added for convenience `struct MStats` and method `medstats` returning it. It holds here the median and MAD. More generally, any `centre` and `dispersion`. Moved the low level and private functions to module `algos.rs`. Updated `times` dev-dependency.
 
 **Version 1.0.0** -  Updated to the latest `indxvec` dependency, v. 1.2.11. Added `times` crate for timing comparison test.
 

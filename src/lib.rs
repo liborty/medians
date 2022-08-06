@@ -53,7 +53,7 @@ impl std::fmt::Display for MStats {
 /// Finding 1D medians, quartiles, and MAD (median of absolute differences)
 pub trait Median {
     /// Finds the median of `&[T]`, fast
-    fn median(&self) -> f64;
+    fn median(self) -> f64;
     /// Median of absolute differences (MAD).
     fn mad(self,median:f64) -> f64;
     /// Median and MAD.
@@ -62,12 +62,12 @@ pub trait Median {
     fn medinfo(self) -> Med;
 }
 
-impl<T> Median for &[T] where T: Copy+PartialOrd,f64:From<T> {
+impl<T> Median for &[T] where T:Copy+PartialOrd,f64:From<T> {
 
 /// median 'big switch' chooses the best algorithm for a given length of set
-fn median(&self) -> f64 {
+fn median(self) -> f64 {
     let n = self.len();
-    if n == 0 { panic!("{} empty vector!",here!()) };
+    if n == 0 { return 0_f64 };
     if n < 60 { w_median(self)}
     else { r_median(self)} 
 }
@@ -77,8 +77,7 @@ fn median(&self) -> f64 {
 /// When argument `med` is the median, it is the most stable measure of data dispersion.
 /// However, any central tendency can be used. 
 fn mad(self,med:f64) -> f64 {
-    let diffs:Vec<f64> = self.iter().map(|&s| ((f64::from(s)-med).abs())).collect();
-    diffs.as_slice().median() // median of 
+    self.iter().map(|&s| ((f64::from(s)-med).abs())).collect::<Vec<f64>>().median() 
 }
 
 /// Centre and dispersion defined by median
@@ -102,16 +101,16 @@ fn medinfo(self) -> Med {
     if equals > 1 {
         let eqhalf = vec!(0.;equals/2);
         let eqslice = vec!(0.;equals); 
-        let lq = negdifs.unite_unsorted(&eqhalf).as_slice().median();
-        let uq = eqhalf.unite_unsorted(&posdifs).as_slice().median();
+        let lq = negdifs.unite_unsorted(&eqhalf).median();
+        let uq = eqhalf.unite_unsorted(&posdifs).median();
         Med{ median:med, 
              lq:med-lq, 
              uq:med+uq, 
-             mad: [negdifs,eqslice,posdifs].concat().as_slice().median()} }
+             mad: [negdifs,eqslice,posdifs].concat().median()} }
     else {
     Med { median:med,
-          lq: med-negdifs.as_slice().median(),  
-          uq: med+posdifs.as_slice().median(), 
-          mad: [negdifs,posdifs].concat().as_slice().median()} } 
+          lq: med-negdifs.median(),  
+          uq: med+posdifs.median(), 
+          mad: [negdifs,posdifs].concat().median()} } 
     }
 }
