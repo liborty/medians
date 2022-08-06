@@ -1,5 +1,18 @@
 use indxvec::{here,Vecops};
 
+/// measure errors in median
+pub fn balance<T>(s:&[T],x:f64) -> i64 where T: Copy,f64:From<T> {
+    let mut bal = 0_i64;
+    let mut eq = if (s.len() & 1) == 0 { 0_i64 } else { 1_i64 };
+    for &si in s { 
+        let dif = f64::from(si)-x;
+        if dif > 0.0 { bal += 1; continue; };
+        if dif < 0.0 { bal -= 1; continue; };
+        eq += 1;
+    }
+    if bal.abs() > eq { 1_i64 } else { 0_i64 }
+}
+
 /// Median of a &[T] slice by sorting
 /// Works slowly but gives exact results
 /// Sorts its mutable slice argument as a side effect
@@ -10,13 +23,14 @@ use indxvec::{here,Vecops};
 /// let res = naive_median(&mut v);
 /// assert_eq!(res,8_f64);
 /// ```
-pub fn naive_median<T>(s:&mut [T]) -> f64
+pub fn naive_median<T>(s:&[T]) -> f64
     where T: Copy+PartialOrd,f64:From<T> {
     let n = s.len();
     if n == 0 { panic!("{} empty vector!",here!()); };
     if n == 1 { return f64::from(s[0]); };
     if n == 2 { return (f64::from(s[0])+f64::from(s[1]))/2.0; }; 
-    s.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap()); // fastest Rust sort
+    let mut sf = s.to_vec();
+    sf.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap()); // fastest Rust sort
     let mid = s.len()/2; // midpoint (floors odd sizes)
     if (n & 1) == 0 { (f64::from(s[mid-1]) + f64::from(s[mid])) / 2.0 } // s is even
     else { f64::from(s[mid]) } // s is odd     

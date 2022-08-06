@@ -5,8 +5,8 @@
 
 /// Functions for finding medians
 pub mod algos;
-use crate::algos::{w_median,r_median};
-use indxvec::{here,Vecops,Printing,printing::{GR,UN}};
+use crate::algos::{w_median,naive_median,r_median};
+use indxvec::{Vecops,printing::{GR,UN}};
 
 #[derive(Default)]
 /// Median, quartiles, mad (median of absolute diffs)
@@ -18,17 +18,24 @@ pub struct Med {
     /// upper quartile, as MPD (median of positive differences)
     pub uq: f64,
     /// median of absolute differences (from median)
-    pub mad: f64
+    pub mad: f64,
+    /// standard error - mad divided by median
+    pub ste: f64
 }
 impl std::fmt::Display for Med {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "median:\n\tLower Q: {}\n\tMedian:  {}\n\tUpper Q: {}\n\tMad:    {GR}{}{UN}",
-            self.lq.gr(),
-            self.median.gr(),
-            self.uq.gr(),
-            self.mad
+    write!( f,
+    "median:
+    \tLower Q: {GR}{:>.16}{UN}
+    \tMedian:  {GR}{:>.16}{UN}
+    \tUpper Q: {GR}{:>.16}{UN}
+    \tMad:     {GR}{:>.16}{UN}
+    \tStd Err: {GR}{:>.16}{UN}",
+        self.lq,
+        self.median,
+        self.uq,
+        self.mad,
+        self.ste
         )
     }
 }
@@ -44,7 +51,7 @@ pub struct MStats {
 }
 impl std::fmt::Display for MStats {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f,"centre: {GR}{}{UN}, dispersion: {GR}{}{UN}",
+        write!(f,"centre: {GR}{:<10e}{UN}\tdispersion: {GR}{:<10e}{UN}",
         self.centre, self.dispersion )
     }
 }
@@ -58,7 +65,7 @@ pub trait Median {
     fn mad(self,median:f64) -> f64;
     /// Median and MAD.
     fn medstats(self) -> MStats;
-    /// Median, quartiles and MAD.
+    /// Median, quartiles, MAD, Stderr
     fn medinfo(self) -> Med;
 }
 
@@ -68,8 +75,8 @@ impl<T> Median for &[T] where T:Copy+PartialOrd,f64:From<T> {
 fn median(self) -> f64 {
     let n = self.len();
     if n == 0 { return 0_f64 };
-    if n < 60 { w_median(self)}
-    else { r_median(self)} 
+    if n < 90 { w_median(self) }
+    else { r_median(self) } 
 }
 
 /// Data dispersion estimator MAD (Median of Absolute Differences). 
@@ -101,16 +108,22 @@ fn medinfo(self) -> Med {
     if equals > 1 {
         let eqhalf = vec!(0.;equals/2);
         let eqslice = vec!(0.;equals); 
-        let lq = negdifs.unite_unsorted(&eqhalf).median();
-        let uq = eqhalf.unite_unsorted(&posdifs).median();
+        let lq = med - negdifs.unite_unsorted(&eqhalf).median();
+        let uq = med + eqhalf.unite_unsorted(&posdifs).median();
+        let mad = [negdifs,eqslice,posdifs].concat().median();
         Med{ median:med, 
-             lq:med-lq, 
-             uq:med+uq, 
-             mad: [negdifs,eqslice,posdifs].concat().median()} }
+             lq, 
+             uq, 
+             mad,
+             ste: mad/med } }
     else {
-    Med { median:med,
-          lq: med-negdifs.median(),  
-          uq: med+posdifs.median(), 
-          mad: [negdifs,posdifs].concat().median()} } 
+        let lq = med-negdifs.median();
+        let uq = med+posdifs.median();
+        let mad = [negdifs,posdifs].concat().median();
+        Med { median:med,
+            lq,  
+            uq, 
+            mad,
+            ste: mad/med } } 
     }
 }
