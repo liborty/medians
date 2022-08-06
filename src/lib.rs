@@ -5,7 +5,7 @@
 
 /// Functions for finding medians
 pub mod algos;
-use crate::algos::{w_median,naive_median,r_median};
+use crate::algos::{w_median,r_median};
 use indxvec::{Vecops,printing::{GR,UN}};
 
 #[derive(Default)]
