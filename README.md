@@ -56,6 +56,8 @@ pub trait Median {
 
 ## Release Notes
 
+**Version 1.0.4** - Updated dependency `indxvec v.1.4.2`.
+
 **Version 1.0.3** - Added ratio mad/median (standard error) to `struct Med` and improved its Display.
 
 **Version 1.0.2** - Removed unnecessary extra reference from method `median`.

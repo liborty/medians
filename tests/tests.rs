@@ -6,7 +6,7 @@ use medians::Median;
 use medians::algos::{balance,naive_median,w_median,r_median};
 use indxvec::printing::*;
 use ran::{*,generators::*};
-use indxvec::{ here, F64, printing::*, Indices, Printing, Vecops, Mutops};
+use indxvec::{ here, printing::*, Indices, Printing, Vecops, Mutops};
 use ran::*;
 use std::convert::From;
 use times::{benchu8,benchu64,benchf64};
