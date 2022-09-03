@@ -21,7 +21,7 @@ const CLOSURESF64:[fn(&[f64]);2] = [
 fn comparison() {
     set_seeds(7777777777_u64);   // intialise random numbers generator
     // Rnum encapsulates the type of the data items
-   benchf64(Rnum::newf64(),5,20,&NAMES,&CLOSURESF64); 
+   benchf64(Rnum::newf64(),5..10000,1000,10,&NAMES,&CLOSURESF64); 
 }
 
 #[test]

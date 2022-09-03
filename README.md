@@ -56,6 +56,8 @@ pub trait Median {
 
 ## Release Notes
 
+**Version 1.0.6** - Updated to `times 1.0.4`. Changed the comparison test accordingly.
+
 **Version 1.0.5** - Simplification. Deleted unnecessary w_median. Simplified error test. Updated dev-dependencies `ran 1.0.3` and `times 1.0.3`.
 
 **Version 1.0.4** - Updated dependency `indxvec v.1.4.2`.
