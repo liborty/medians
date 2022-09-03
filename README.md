@@ -20,7 +20,7 @@ Finding the medians is a common task in statistics and general data analysis. At
 ## The Algorithms
 
 * `naive_median`  
-  is a useful baseline for time comparisons in our performance benchmark (see `tests.rs`). The naive median is found simply by sorting the list of data and then picking the midpoint. In this case, the fastest standard Rust `sort_unstable_by` is used.
+  is a useful baseline for time comparisons in our performance benchmark (see [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs). The naive median is found simply by sorting the list of data and then picking the midpoint. In this case, the fastest standard Rust `sort_unstable_by` is used.
 
   The problem with this approach is that, even when using a good quality sort with guaranteed performance, its complexity is at best O(n log n). The quest for faster median algorithms, with complexity O(n), is motivated by the observation that not all items need to be fully sorted.
 
@@ -55,6 +55,8 @@ pub trait Median {
 ```
 
 ## Release Notes
+
+**Version 1.0.5** - Simplification. Deleted unnecessary w_median. Simplified error test. Updated dev-dependencies `ran 1.0.3` and `times 1.0.3`.
 
 **Version 1.0.4** - Updated dependency `indxvec v.1.4.2`.
 
