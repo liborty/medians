@@ -4,6 +4,7 @@
 [<img alt="crates.io" src="https://img.shields.io/crates/v/medians?logo=rust">](https://crates.io/crates/medians)
 [<img alt="crates.io" src="https://img.shields.io/crates/d/medians?logo=rust">](https://crates.io/crates/medians)
 [<img alt="docs.rs" src="https://img.shields.io/docsrs/medians?logo=rust">](https://docs.rs/medians)
+[![Actions Status](https://github.com/liborty/medians/workflows/compilation/badge.svg)](https://github.com/liborty/medians/actions)
 
 Fast new algorithm(s) for finding 1d medians, implemented in Rust.
 
