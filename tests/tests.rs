@@ -32,7 +32,7 @@ fn errors() {
         let mut error = 0_i64;        
         print!("\nEven lengths: {GR}{}{UN}, repeats: {GR}{}{UN}, ",d,n);
         for _ in 0..n { 
-            let v = ranvf64_xoshi(d); // random vector  
+            let v = ranvf64_xoshi(d).unwrap(); // random vector  
             let med = v.median(); 
             error += balance(&v,med);
         };
@@ -40,7 +40,7 @@ fn errors() {
         error = 0_i64;
         print!("Odd lengths:  {GR}{}{UN}, repeats: {GR}{}{UN}, ",d+1,n);
         for _ in 0..n {
-            let v = ranvf64_xoshi(d+1); // random vector
+            let v = ranvf64_xoshi(d+1).unwrap(); // random vector
             let med = v.median();
             error += balance(&v,med);
         }; 
