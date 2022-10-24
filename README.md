@@ -2,11 +2,9 @@
 
 [<img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/liborty/medians/HEAD?logo=github">](https://github.com/liborty/medians)
 [<img alt="crates.io" src="https://img.shields.io/crates/v/medians?logo=rust">](https://crates.io/crates/medians)
-[<img alt="crates.io" src="https://img.shields.io/crates/d/medians?logo=rust">](https://crates.io/crates/medians)
-[<img alt="docs.rs" src="https://img.shields.io/docsrs/medians?logo=rust">](https://docs.rs/medians)
-[![Actions Status](https://github.com/liborty/medians/workflows/compilation/badge.svg)](https://github.com/liborty/medians/actions)
+[<img alt="crates.io" src="https://img.shields.io/crates/d/medians?logo=rust">](https://crates.io/crates/medians) [<img alt="docs.rs" src="https://img.shields.io/docsrs/medians?logo=rust">](https://docs.rs/medians) [![Actions Status](https://github.com/liborty/medians/workflows/test/badge.svg)](https://github.com/liborty/medians/actions)
 
-Fast new algorithm(s) for finding 1d medians, implemented in Rust.
+Fast algorithm(s) for finding 1d medians, implemented in Rust.
 
 ## Usage
 
@@ -17,6 +15,8 @@ use medians::{Med,MStats,Median};
 ## Introduction
 
 Finding the medians is a common task in statistics and general data analysis. At least it should be, if only it would not take so long. We argue in [rstats](https://github.com/liborty/rstats) that using the Geometric Median is the most stable way to characterise multidimensional data (nd). That leaves the one dimensional (1d) medians, addressed here. Medians are more stable measure of central tendency than means but they are not used nearly enough. One suspects that this is mostly due to being slower to compute than the arithmetic mean.
+
+See [tests.rs](https://github.com/liborty/medians/blob/main/tests/tests.rs) as examples of usage. Their automatically generated output can be seen by clicking the 'test' icon at the top of this document and then examining the latest log.
 
 ## The Algorithms
 
@@ -57,7 +57,9 @@ pub trait Median {
 
 ## Release Notes
 
-**Version 1.0.7** - Updated to `ran 1.0.4`. Added github action `cargo check`.
+**Version 1.0.8** - Added fully automated tests by github actions.
+
+**Version 1.0.7** - Updated to `ran 1.0.4`
 
 **Version 1.0.6** - Updated to `times 1.0.4`. Changed the comparison test accordingly.
 

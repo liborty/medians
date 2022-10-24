@@ -1,14 +1,14 @@
-name: compilation
+name: test
 
 on: push
 
 jobs:
   build:  
-    name: Rstats 
+    name: medians 
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1    
       with:
         toolchain: stable 
-    - run: cargo check -r    
+    - run: cargo test --release -- --test-threads=1 --nocapture --color always        
