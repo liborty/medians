@@ -50,7 +50,7 @@ pub trait Median {
 
 ## Release Notes
 
-**Version 1.0.9** - Added custom MedError and wrapped outputs in Result.
+**Version 1.0.9** - Added custom MedError and wrapped outputs in Result. Updated `times` dependency.
 
 **Version 1.0.8** - Added fully automated tests by github actions.
 
