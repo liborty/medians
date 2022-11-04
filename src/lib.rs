@@ -5,9 +5,11 @@
 
 /// Functions for finding medians
 pub mod algos;
-mod error;
+/// Custom error
+pub mod error;
+
+pub use crate::error::MedError;
 use crate::algos::{naive_median, r_median};
-use crate::error::MedError;
 use indxvec::{
     printing::{GR, UN},
     Vecops,
