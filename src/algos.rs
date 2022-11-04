@@ -1,4 +1,5 @@
-use indxvec::{here, Vecops};
+use indxvec::{Vecops};
+use crate::MedError;
 
 /// measure errors in median
 pub fn balance<T>(s: &[T], x: f64) -> i64
@@ -27,23 +28,23 @@ where
 /// ```
 /// use medians::algos::naive_median;
 /// let mut v = vec![1_u8,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
-/// let res = naive_median(&mut v);
+/// let res = naive_median(&mut v).expect("example failed");
 /// assert_eq!(res,8_f64);
 /// ```
-pub fn naive_median<T>(s: &[T]) -> f64
+pub fn naive_median<T>(s: &[T]) -> Result<f64,MedError<String>>
 where
     T: Copy + PartialOrd,
     f64: From<T>,
 {
     let n = s.len();
-    if n == 0 {
-        panic!("{} empty vector!", here!());
+    if n == 0 { 
+        return Err(MedError::SizeError("naive_median: empty vector!".to_owned()));
     };
     if n == 1 {
-        return f64::from(s[0]);
+        return Ok(f64::from(s[0]));
     };
     if n == 2 {
-        return (f64::from(s[0]) + f64::from(s[1])) / 2.0;
+        return Ok((f64::from(s[0]) + f64::from(s[1])) / 2.0);
     };
     let mut sf = s.to_vec(); // copy to avoid mutating data
     // Using the fastest available Rust unstable mutable sort
@@ -51,9 +52,9 @@ where
     let mid = s.len() / 2; // midpoint (floors odd sizes)
                            // Even/odd size test (for even size the median is in-between)
     if (n & 1) == 0 {
-        (f64::from(sf[mid - 1]) + f64::from(sf[mid])) / 2.0
+        Ok((f64::from(sf[mid - 1]) + f64::from(sf[mid])) / 2.0)
     } else {
-        f64::from(sf[mid])
+        Ok(f64::from(sf[mid]))
     } // s is odd
 }
 

@@ -14,8 +14,8 @@ use times::{benchu8,benchu64,benchf64};
 const NAMES:[&str;2] = [ "naive_median","median" ];
 
 const CLOSURESF64:[fn(&[f64]);2] = [
-    |v:&[_]| { naive_median(v); },
-    |v:&[_]| { v.median(); } ];
+    |v:&[_]| { naive_median(v).expect("naive_median closure"); },
+    |v:&[_]| { v.median().expect("median closure"); } ];
 
 #[test]
 fn comparison() {
@@ -33,7 +33,7 @@ fn errors() {
         print!("\nEven lengths: {GR}{}{UN}, repeats: {GR}{}{UN}, ",d,n);
         for _ in 0..n { 
             let v = ranvf64_xoshi(d).unwrap(); // random vector  
-            let med = v.median(); 
+            let med = v.median().expect("even errors test"); 
             error += balance(&v,med);
         };
         println!("errors: {GR}{}{UN}",error);
@@ -41,7 +41,7 @@ fn errors() {
         print!("Odd lengths:  {GR}{}{UN}, repeats: {GR}{}{UN}, ",d+1,n);
         for _ in 0..n {
             let v = ranvf64_xoshi(d+1).unwrap(); // random vector
-            let med = v.median();
+            let med = v.median().expect("odd errors test");
             error += balance(&v,med);
         }; 
         println!("errors: {GR}{}{UN}",error)

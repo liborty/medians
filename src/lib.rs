@@ -5,7 +5,9 @@
 
 /// Functions for finding medians
 pub mod algos;
+mod error;
 use crate::algos::{naive_median, r_median};
+use crate::error::MedError;
 use indxvec::{
     printing::{GR, UN},
     Vecops,
@@ -62,13 +64,13 @@ impl std::fmt::Display for MStats {
 /// Finding 1D medians, quartiles, and MAD (median of absolute differences)
 pub trait Median {
     /// Finds the median of `&[T]`, fast
-    fn median(self) -> f64;
+    fn median(self) -> Result<f64,MedError<String>>;
     /// Median of absolute differences (MAD).
-    fn mad(self, median: f64) -> f64;
+    fn mad(self, median: f64) -> Result<f64,MedError<String>>;
     /// Median and MAD.
-    fn medstats(self) -> MStats;
+    fn medstats(self) -> Result<MStats,MedError<String>>;
     /// Median, quartiles, MAD, Stderr
-    fn medinfo(self) -> Med;
+    fn medinfo(self) -> Result<Med,MedError<String>>;
 }
 
 impl<T> Median for &[T]
@@ -77,15 +79,15 @@ where
     f64: From<T>,
 {
     /// median 'big switch' chooses the best algorithm for a given length of input
-    fn median(self) -> f64 {
+    fn median(self) -> Result<f64,MedError<String>> {
         let n = self.len();
         if n == 0 {
-            return 0_f64;
+            return Err(MedError::SizeError("median: zero length data".to_owned()));
         };
         if n < 50 { 
             naive_median(self)
         } else {
-            r_median(self)
+            Ok(r_median(self))
         }
     }
 
@@ -93,7 +95,7 @@ where
     /// MAD is more stable than standard deviation and more general than quartiles.
     /// When argument `med` is the median, it is the most stable measure of data dispersion.
     /// However, any central tendency can be used.
-    fn mad(self, med: f64) -> f64 {
+    fn mad(self, med: f64) -> Result<f64,MedError<String>> {
         self.iter()
             .map(|&s| ((f64::from(s) - med).abs()))
             .collect::<Vec<f64>>()
@@ -101,20 +103,20 @@ where
     }
 
     /// Centre and dispersion defined by median
-    fn medstats(self) -> MStats {
-        let centre = self.median();
-        MStats {
+    fn medstats(self) -> Result<MStats,MedError<String>> {
+        let centre = self.median()?;
+        Ok(MStats {
             centre,
-            dispersion: self.mad(centre),
-        }
+            dispersion: self.mad(centre)?,
+        })
     }
 
     /// Full median information: central tendency, quartiles and MAD spread
-    fn medinfo(self) -> Med {
+    fn medinfo(self) -> Result<Med,MedError<String>> {
         let mut equals = 0_usize;
         let mut posdifs: Vec<f64> = Vec::new();
         let mut negdifs: Vec<f64> = Vec::new();
-        let med = self.median();
+        let med = self.median()?;
         for &s in self {
             let sf = f64::from(s);
             if sf > med {
@@ -128,27 +130,27 @@ where
         if equals > 1 {
             let eqhalf = vec![0.; equals / 2];
             let eqslice = vec![0.; equals];
-            let lq = med - negdifs.unite_unsorted(&eqhalf).median();
-            let uq = med + eqhalf.unite_unsorted(&posdifs).median();
-            let mad = [negdifs, eqslice, posdifs].concat().median();
-            Med {
+            let lq = med - negdifs.unite_unsorted(&eqhalf).median()?;
+            let uq = med + eqhalf.unite_unsorted(&posdifs).median()?;
+            let mad = [negdifs, eqslice, posdifs].concat().median()?;
+            Ok(Med {
                 median: med,
                 lq,
                 uq,
                 mad,
                 ste: mad / med,
-            }
+            })
         } else {
-            let lq = med - negdifs.median();
-            let uq = med + posdifs.median();
-            let mad = [negdifs, posdifs].concat().median();
-            Med {
+            let lq = med - negdifs.median()?;
+            let uq = med + posdifs.median()?;
+            let mad = [negdifs, posdifs].concat().median()?;
+            Ok(Med {
                 median: med,
                 lq,
                 uq,
                 mad,
                 ste: mad / med,
-            }
+            })
         }
     }
 }
