@@ -9,7 +9,7 @@ pub mod algos;
 pub mod error;
 
 pub use crate::error::MedError;
-use crate::algos::{naive_median, r_median};
+use crate::algos::*;
 use indxvec::{
     printing::{GR, UN},
     Vecops,
@@ -64,63 +64,63 @@ impl std::fmt::Display for MStats {
 }
 
 /// Finding 1D medians, quartiles, and MAD (median of absolute differences)
-pub trait Median {
+pub trait Median<T,Q> {
     /// Finds the median of `&[T]`, fast
-    fn median(self) -> Result<f64,MedError<String>>;
+    fn median(self, quantify: &mut Q ) -> Result<f64,MedError<String>>; 
     /// Median of absolute differences (MAD).
-    fn mad(self, median: f64) -> Result<f64,MedError<String>>;
+    fn mad(self, med: f64, quantify: &mut Q ) -> Result<f64,MedError<String>>; 
     /// Median and MAD.
-    fn medstats(self) -> Result<MStats,MedError<String>>;
+    fn medstats(self, quantify: &mut Q ) -> Result<MStats,MedError<String>>;
     /// Median, quartiles, MAD, Stderr
-    fn medinfo(self) -> Result<Med,MedError<String>>;
+    fn medinfo(self, quantify: &mut Q ) -> Result<Med,MedError<String>>;
 }
 
-impl<T> Median for &[T]
+impl<T,Q> Median<T,Q> for &[T]
 where
     T: Copy + PartialOrd,
-    f64: From<T>,
+    Q: FnMut(&T) -> f64
 {
     /// median 'big switch' chooses the best algorithm for a given length of input
-    fn median(self) -> Result<f64,MedError<String>> {
+    fn median(self, quantify: &mut Q) -> Result<f64,MedError<String>> {
         let n = self.len();
-        if n == 0 {
-            return Err(MedError::SizeError("median: zero length data".to_owned()));
-        };
-        if n < 50 { 
-            naive_median(self)
-        } else {
-            Ok(r_median(self))
+        match n {
+        0 => { Err(MedError::SizeError("median: zero length data".to_owned())) },
+        1 => { Ok( quantify(&self[0])) },
+        2 => { Ok( quantify(&self[0])+quantify(&self[1])/2.0) },
+        _ => { Ok(auto_median(self,quantify)) }
         }
-    }
+        // return naive_median(self, quantify);
+    }        
 
     /// Data dispersion estimator MAD (Median of Absolute Differences).
     /// MAD is more stable than standard deviation and more general than quartiles.
     /// When argument `med` is the median, it is the most stable measure of data dispersion.
     /// However, any central tendency can be used.
-    fn mad(self, med: f64) -> Result<f64,MedError<String>> {
+    fn mad(self, med: f64, quantify: &mut Q) -> Result<f64,MedError<String>> {
         self.iter()
-            .map(|&s| ((f64::from(s) - med).abs()))
+            .map(|&s| ((quantify(&s) - med).abs()))
             .collect::<Vec<f64>>()
-            .median()
+            .median(&mut |f:&f64| *f)
     }
 
     /// Centre and dispersion defined by median
-    fn medstats(self) -> Result<MStats,MedError<String>> {
-        let centre = self.median()?;
+    fn medstats(self, quantify: &mut Q) -> Result<MStats,MedError<String>> {
+        let centre = self.median(quantify)?;
         Ok(MStats {
             centre,
-            dispersion: self.mad(centre)?,
+            dispersion: self.mad(centre,quantify)?,
         })
     }
 
     /// Full median information: central tendency, quartiles and MAD spread
-    fn medinfo(self) -> Result<Med,MedError<String>> {
+    fn medinfo(self, quantify: &mut Q ) -> Result<Med,MedError<String>> {
+        let mut deref = |t:&f64| *t;
         let mut equals = 0_usize;
         let mut posdifs: Vec<f64> = Vec::new();
         let mut negdifs: Vec<f64> = Vec::new();
-        let med = self.median()?;
+        let med = self.median(quantify)?;
         for &s in self {
-            let sf = f64::from(s);
+            let sf = quantify(&s);
             if sf > med {
                 posdifs.push(sf - med)
             } else if sf < med {
@@ -132,9 +132,9 @@ where
         if equals > 1 {
             let eqhalf = vec![0.; equals / 2];
             let eqslice = vec![0.; equals];
-            let lq = med - negdifs.unite_unsorted(&eqhalf).median()?;
-            let uq = med + eqhalf.unite_unsorted(&posdifs).median()?;
-            let mad = [negdifs, eqslice, posdifs].concat().median()?;
+            let lq = med - negdifs.unite_unsorted(&eqhalf).median( &mut deref)?;
+            let uq = med + eqhalf.unite_unsorted(&posdifs).median(&mut deref)?;
+            let mad = [negdifs, eqslice, posdifs].concat().median(&mut deref)?;
             Ok(Med {
                 median: med,
                 lq,
@@ -143,9 +143,9 @@ where
                 ste: mad / med,
             })
         } else {
-            let lq = med - negdifs.median()?;
-            let uq = med + posdifs.median()?;
-            let mad = [negdifs, posdifs].concat().median()?;
+            let lq = med - negdifs.median(&mut deref)?;
+            let uq = med + posdifs.median(&mut deref)?;
+            let mad = [negdifs, posdifs].concat().median(&mut deref)?;
             Ok(Med {
                 median: med,
                 lq,

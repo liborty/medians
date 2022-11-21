@@ -50,6 +50,8 @@ pub trait Median {
 
 ## Release Notes
 
+**Version 2.0.0** - Better, leaner, faster! Drastically reduced stack usage. Significant speed up using iterative implementation. More concise code. Deleted algorithms with inferior performance, such as `naive_median`. Pivot value estimates are now simple arithmetic means. This is not as sophisticated as secant but is fast to evaluate, giving better overall performance. Introduced closure argument `quantify`, allowing dynamic application to any (quantifiable) data types. Yanked versions 1.0.9 & 1.0.10 as returning `Result` was a breaking change which according to `semver` requires major new version, i.e. this one.
+
 **Version 1.0.9** - Added custom MedError and wrapped outputs in Result. Updated `times` dependency.
 
 **Version 1.0.8** - Added fully automated tests by github actions.

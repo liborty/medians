@@ -3,7 +3,7 @@
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
 use medians::Median;
-use medians::algos::{balance,naive_median,r_median};
+use medians::algos::{fpart,balance,naive_median,r_median,rng_median,auto_median};
 use indxvec::printing::*;
 use ran::{*,generators::*};
 use indxvec::{ here, printing::*, Indices, Printing, Vecops, Mutops};
@@ -11,17 +11,40 @@ use ran::*;
 use std::convert::From;
 use times::{benchu8,benchu64,benchf64};
 
-const NAMES:[&str;2] = [ "naive_median","median" ];
+const NAMES:[&str;4] = [ "naive_median","r_median","rng_median","auto_median" ];
 
-const CLOSURESF64:[fn(&[f64]);2] = [
-    |v:&[_]| { naive_median(v).expect("naive_median closure"); },
-    |v:&[_]| { v.median().expect("median closure"); } ];
+const CLOSURESF64:[fn(&[f64]);4] = [
+    |v:&[_]| { naive_median(v,&mut |&t| t).expect("naive_median closure"); },
+    |v:&[_]| { r_median(v,&mut |t:&f64| *t); }, // .expect("median closure"); },
+    |v:&[_]| { rng_median(v,0.0..=1.0,&mut |&x| x as f64); },
+    |v:&[_]| { auto_median(v,&mut |&x| x as f64); } ];
+
+#[test]
+fn text() {
+    let song = "There was a jolly miller once who lived on the river Dee. \
+        From morn till night all day he sang for a jolly old fellow was he; \
+        and this forever the burden of his song seemed to be: \
+        I care for nobody, no not I, and nobody cares for me. Tee hee heee.";
+    let v = song.split(' ').collect::<Vec<_>>();
+    println!("{}", v.gr()); // Display
+    println!("Hash sorted by word lengths: {}",v.sorth(&mut |s:&&str| s.len() as f64,true).gr());
+    let median_word = v.median(&mut |s:&&str| s.len() as f64)
+        .expect("text(): Median failed\n");
+    println!("Median word length in bytes is: {}",median_word.yl());
+    }
+
+#[test]
+fn parting() {
+    let mut v = [9.,8.,7.,6.,5.,5.,5.,5.,5.,5.,4.,3.,2.,1.,0.];
+    let len = v.len();
+    println!("Parting index {}\n{}",fpart(&mut v,&(0..len), 5.0),v.gr());
+}
 
 #[test]
 fn comparison() {
     set_seeds(7777777777_u64);   // intialise random numbers generator
     // Rnum encapsulates the type of the data items
-   benchf64(Rnum::newf64(),5..10000,1000,10,&NAMES,&CLOSURESF64); 
+   benchf64(Rnum::newf64(),2..20,1,10,&NAMES,&CLOSURESF64); 
 }
 
 #[test]
@@ -29,21 +52,20 @@ fn errors() {
     let n = 10_usize; // number of vectors to test for each magnitude
     set_seeds(777777777_u64);   // intialise random numbers generator
     for d in [10,50,100,1000,10000,100000] { 
-        let mut error = 0_i64;        
-        print!("\nEven lengths: {GR}{}{UN}, repeats: {GR}{}{UN}, ",d,n);
+        let mut error = 0_i64; 
         for _ in 0..n { 
-            let v = ranvf64_xoshi(d).unwrap(); // random vector  
-            let med = v.median().expect("even errors test"); 
+            let v = ranvu8(d).unwrap(); // random vector  
+            let med = v.median(&mut |t:&u8| *t as f64).expect("even errors test");  
+            error += balance(&v,med);
+            // println!("{} balance: {}",med, balance(&v,med) );
+        };
+        println!("\nEven lengths: {GR}{}{UN}, repeats: {GR}{}{UN}, errors: {GR}{}{UN}",d,n,error); 
+        error = 0_i64; 
+        for _ in 0..n {
+            let v = ranvu8(d+1).unwrap(); // random vector
+            let med = v.median(&mut |t:&u8| *t as f64).expect("odd errors test");
             error += balance(&v,med);
         };
-        println!("errors: {GR}{}{UN}",error);
-        error = 0_i64;
-        print!("Odd lengths:  {GR}{}{UN}, repeats: {GR}{}{UN}, ",d+1,n);
-        for _ in 0..n {
-            let v = ranvf64_xoshi(d+1).unwrap(); // random vector
-            let med = v.median().expect("odd errors test");
-            error += balance(&v,med);
-        }; 
-        println!("errors: {GR}{}{UN}",error)
+        println!("Odd lengths:  {GR}{}{UN}, repeats: {GR}{}{UN}, errors: {GR}{}{UN}",d+1,n,error);
     }
 }
