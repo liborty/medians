@@ -3,7 +3,7 @@
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
 use medians::Median;
-use medians::algos::{fpart,balance,naive_median,r_median,rng_median,auto_median};
+use medians::algos::{fpart,balance,auto_median};
 use indxvec::printing::*;
 use ran::{*,generators::*};
 use indxvec::{ here, printing::*, Indices, Printing, Vecops, Mutops};
@@ -11,12 +11,9 @@ use ran::*;
 use std::convert::From;
 use times::{benchu8,benchu64,benchf64};
 
-const NAMES:[&str;4] = [ "naive_median","r_median","rng_median","auto_median" ];
+const NAMES:[&str;1] = [ "auto_median" ];
 
-const CLOSURESF64:[fn(&[f64]);4] = [
-    |v:&[_]| { naive_median(v,&mut |&t| t).expect("naive_median closure"); },
-    |v:&[_]| { r_median(v,&mut |t:&f64| *t); }, // .expect("median closure"); },
-    |v:&[_]| { rng_median(v,0.0..=1.0,&mut |&x| x as f64); },
+const CLOSURESF64:[fn(&[f64]);1] = [ 
     |v:&[_]| { auto_median(v,&mut |&x| x as f64); } ];
 
 #[test]
@@ -44,7 +41,7 @@ fn parting() {
 fn comparison() {
     set_seeds(7777777777_u64);   // intialise random numbers generator
     // Rnum encapsulates the type of the data items
-   benchf64(Rnum::newf64(),2..20,1,10,&NAMES,&CLOSURESF64); 
+   benchf64(Rnum::newf64(),1..10000,500,10,&NAMES,&CLOSURESF64); 
 }
 
 #[test]

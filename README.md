@@ -1,6 +1,6 @@
 # Medians [<img alt="crates.io" src="https://img.shields.io/crates/v/medians?logo=rust">](https://crates.io/crates/medians) [<img alt="crates.io" src="https://img.shields.io/crates/d/medians?logo=rust">](https://crates.io/crates/medians) [<img alt="docs.rs" src="https://img.shields.io/docsrs/medians?logo=rust">](https://docs.rs/medians) [<img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/liborty/medians/HEAD?logo=github">](https://github.com/liborty/medians) [![Actions Status](https://github.com/liborty/medians/workflows/test/badge.svg)](https://github.com/liborty/medians/actions)
 
-Fast algorithm(s) for finding 1d median, implemented in Rust.
+Fast algorithm(s) for finding 1d median, in Rust.
 
 ## Usage
 
@@ -14,18 +14,20 @@ Finding the medians is a common task in statistics and general data analysis. At
 
 See [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs) as examples of usage. Their automatically generated output can be seen by clicking the 'test' icon at the top of this document and then examining the latest log.
 
-## The Algorithms
+## The Algorithm
 
 * `naive_median`  
-  is a useful baseline for time comparisons in our performance benchmark (see [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs)). The naive median is found simply by sorting the list of data and then picking the midpoint. In this case, the fastest standard Rust `sort_unstable_by` is used.
+  The naive median is found by sorting the list of data and then picking the midpoint. In this case, the fastest `hashsort` from crate `indxvec` was used, which is a lot faster than the standard Rust Quicksort.
 
-  The problem with this approach is that, even when using a good quality sort with guaranteed performance, its complexity is at best `O(n log n)`. The quest for faster median algorithms, with complexity `O(n)`, is based on the observation that not all items need to be fully sorted.
+  The problem with this approach is that, even when using a good quality sort, its complexity is at best `O(n log n)`. The quest for faster median algorithms, with complexity `O(n)`, is based on the observation that not all items need to be fully sorted.
 
-* `r_median`
-recursively partitions data around a pivot computed by a specialised secant method using passed down minimum and maximum values. Beats all other algorithms on `Vecs` of lengths of 50 upwards. At the order of magnitude 4 it runs at just over 12% and at 5 it runs at just over 10% of the 'naive' time (on f64 data).  In other words, it is approaching the linear complexity.
+  Therefore `naive_median` could not compete and it has now been deleted (as of version 2.0.0).
+
+* `auto_median`
+Iteratively partitions data around a pivot estimated as the arithmetic mean of the data. This is not the most sophisticated estimate but it is reasonably well centred and it is the fastest to compute.  This algorithm is approaching the linear complexity.
 
 * `median`
-is the main public entry point, implemented as a method of trait `Median`. It is just a 'switch' between `naive_median`, used only for very short data vectors, and `r_median`, for longer ones. Thus it gives optimal performance over all lengths of data and is the recommended method to use.
+is the main public entry point, implemented as a method of trait `Median`.
 
 ## Structs
 
@@ -50,7 +52,7 @@ pub trait Median {
 
 ## Release Notes
 
-**Version 2.0.0** - Better, leaner, faster! Drastically reduced stack usage. Significant speed up using iterative implementation. More concise code. Deleted algorithms with inferior performance, such as `naive_median`. Pivot value estimates are now simple arithmetic means. This is not as sophisticated as secant but is fast to evaluate, giving better overall performance. Introduced closure argument `quantify`, allowing dynamic application to any (quantifiable) data types. Yanked versions 1.0.9 & 1.0.10 as returning `Result` was a breaking change which according to `semver` requires major new version, i.e. this one.
+**Version 2.0.0** - Better, leaner, faster! Drastically reduced stack usage. Significant speed up using iterative implementation. More concise code. Deleted all old algorithms with inferior performance, such as `naive_median`. Pivot value estimates are now simple arithmetic means. This is not as sophisticated as secant but is fast to evaluate, giving better overall performance. Introduced closure argument `quantify`, allowing dynamic application to any (quantifiable) data types. Yanked versions 1.0.9 & 1.0.10 as returning `Result` was a breaking change which according to `semver` requires major new version, i.e. this one.
 
 **Version 1.0.9** - Added custom MedError and wrapped outputs in Result. Updated `times` dependency.
 
