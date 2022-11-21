@@ -1,6 +1,6 @@
 use crate::MedError;
 use core::ops::{Range, RangeInclusive};
-// use indxvec::{Mutops, Vecops};
+use indxvec::{Mutops, Vecops};
 
 /// measure errors in median
 pub fn balance<T>(s: &[T], x: f64) -> i64
