@@ -84,7 +84,6 @@ fn fmax(s: &[f64], rng: Range<usize>) -> f64 {
 /// Those are now found during the first data splitting, which saves some comparisons per data item.
 pub fn auto_median<T>(set: &[T], quantify: &mut impl FnMut(&T) -> f64) -> f64
 where
-    T: Copy + PartialOrd,
 {
     let n = set.len();
     let mut pivot = 0_f64;
@@ -124,8 +123,7 @@ fn b_med_odd(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
         };
         let newpivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / rng.len() as f64;
         if newpivot == pivot { return pivot; } // in equals region
-        else { pivot = newpivot; }; 
-        // println!("gtpivot {}",pivot);
+        else { pivot = newpivot; };  
     }
 }
 

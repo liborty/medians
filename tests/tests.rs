@@ -4,7 +4,6 @@
 use devtimer::{DevTime,SimpleTimer};
 use medians::Median;
 use medians::algos::{fpart,balance,auto_median};
-use indxvec::printing::*;
 use ran::{*,generators::*};
 use indxvec::{ here, printing::*, Indices, Printing, Vecops, Mutops};
 use ran::*;

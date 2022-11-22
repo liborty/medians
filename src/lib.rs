@@ -63,10 +63,14 @@ impl std::fmt::Display for MStats {
     }
 }
 
-/// Finding 1D medians, quartiles, and MAD (median of absolute differences)
+/// Fast 1D medians and associated information and tasks
 pub trait Median<T,Q> {
     /// Finds the median of `&[T]`, fast
-    fn median(self, quantify: &mut Q ) -> Result<f64,MedError<String>>; 
+    fn median(self, quantify: &mut Q ) -> Result<f64,MedError<String>>;
+    /// Zero median f64 data produced by finding and subtracting the median. 
+    fn zeromedian(self, quantify: &mut Q) -> Result<Vec<f64>,MedError<String>>; 
+    /// Median correlation = cosine of an angle between two zero median vecs
+    fn mediancorr(self, v: &[T], quantify: &mut Q) -> Result<f64,MedError<String>>;
     /// Median of absolute differences (MAD).
     fn mad(self, med: f64, quantify: &mut Q ) -> Result<f64,MedError<String>>; 
     /// Median and MAD.
@@ -77,7 +81,6 @@ pub trait Median<T,Q> {
 
 impl<T,Q> Median<T,Q> for &[T]
 where
-    T: Copy + PartialOrd,
     Q: FnMut(&T) -> f64
 {
     /// median 'big switch' chooses the best algorithm for a given length of input
@@ -88,9 +91,41 @@ where
         1 => { Ok( quantify(&self[0])) },
         2 => { Ok( quantify(&self[0])+quantify(&self[1])/2.0) },
         _ => { Ok(auto_median(self,quantify)) }
-        }
-        // return naive_median(self, quantify);
+        } 
+    }
+    
+    /// Zero median data produced by subtracting the median.
+    /// Analogous to zero mean data when subtracting the mean.
+    fn zeromedian(self, quantify: &mut Q) -> Result<Vec<f64>,MedError<String>> {
+        let median = self.median(quantify)?; 
+        Ok(self.iter().map(|s| quantify(s)-median).collect())
+    }
+
+    /// We define median based correlation as cosine of an angle between two
+    /// zero median vectors (analogously to Pearson's zero mean vectors) 
+    /// # Example
+    /// ```
+    /// use medians::Median; 
+    /// let v1 = vec![1_f64,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.];
+    /// let v2 = vec![14_f64,1.,13.,2.,12.,3.,11.,4.,10.,5.,9.,6.,8.,7.];
+    /// assert_eq!(v1.mediancorr(&v2,&mut |f:&f64| *f).unwrap(),-0.1076923076923077);
+    /// ```
+    fn mediancorr(self, v: &[T], quantify: &mut Q) -> Result<f64,MedError<String>>
+    { 
+        let mut sxy= 0_f64;
+        let mut sy2 = 0_f64;
+        let sx2: f64 = self.zeromedian(quantify)?
+        .into_iter()
+        .zip(v.zeromedian(quantify)?)
+        .map(|(x, y)| {      
+            sxy += x * y;
+            sy2 += y * y;
+            x*x
+        })
+        .sum();
+        Ok (sxy / (sx2*sy2).sqrt())
     }        
+
 
     /// Data dispersion estimator MAD (Median of Absolute Differences).
     /// MAD is more stable than standard deviation and more general than quartiles.
@@ -98,7 +133,7 @@ where
     /// However, any central tendency can be used.
     fn mad(self, med: f64, quantify: &mut Q) -> Result<f64,MedError<String>> {
         self.iter()
-            .map(|&s| ((quantify(&s) - med).abs()))
+            .map(|s| ((quantify(s) - med).abs()))
             .collect::<Vec<f64>>()
             .median(&mut |f:&f64| *f)
     }
@@ -119,8 +154,8 @@ where
         let mut posdifs: Vec<f64> = Vec::new();
         let mut negdifs: Vec<f64> = Vec::new();
         let med = self.median(quantify)?;
-        for &s in self {
-            let sf = quantify(&s);
+        for s in self {
+            let sf = quantify(s);
             if sf > med {
                 posdifs.push(sf - med)
             } else if sf < med {
