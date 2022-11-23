@@ -64,27 +64,25 @@ impl std::fmt::Display for MStats {
 }
 
 /// Fast 1D medians and associated information and tasks
-pub trait Median<T,Q> {
+pub trait Median<T> {
     /// Finds the median of `&[T]`, fast
-    fn median(self, quantify: &mut Q ) -> Result<f64,MedError<String>>;
+    fn median(self, quantify: &mut impl FnMut(&T)->f64 ) -> Result<f64,MedError<String>>;
     /// Zero median f64 data produced by finding and subtracting the median. 
-    fn zeromedian(self, quantify: &mut Q) -> Result<Vec<f64>,MedError<String>>; 
+    fn zeromedian(self, quantify: &mut impl FnMut(&T)->f64) -> Result<Vec<f64>,MedError<String>>; 
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn mediancorr(self, v: &[T], quantify: &mut Q) -> Result<f64,MedError<String>>;
+    fn mediancorr(self, v: &[T], quantify: &mut impl FnMut(&T)->f64) -> Result<f64,MedError<String>>;
     /// Median of absolute differences (MAD).
-    fn mad(self, med: f64, quantify: &mut Q ) -> Result<f64,MedError<String>>; 
+    fn mad(self, med: f64, quantify: &mut impl FnMut(&T)->f64) -> Result<f64,MedError<String>>; 
     /// Median and MAD.
-    fn medstats(self, quantify: &mut Q ) -> Result<MStats,MedError<String>>;
+    fn medstats(self, quantify: &mut impl FnMut(&T)->f64) -> Result<MStats,MedError<String>>;
     /// Median, quartiles, MAD, Stderr
-    fn medinfo(self, quantify: &mut Q ) -> Result<Med,MedError<String>>;
+    fn medinfo(self, quantify: &mut impl FnMut(&T)->f64) -> Result<Med,MedError<String>>;
 }
 
-impl<T,Q> Median<T,Q> for &[T]
-where
-    Q: FnMut(&T) -> f64
+impl<T> Median<T> for &[T]
 {
     /// median 'big switch' chooses the best algorithm for a given length of input
-    fn median(self, quantify: &mut Q) -> Result<f64,MedError<String>> {
+    fn median(self, quantify: &mut impl FnMut(&T)->f64 ) -> Result<f64,MedError<String>> {
         let n = self.len();
         match n {
         0 => { Err(MedError::SizeError("median: zero length data".to_owned())) },
@@ -96,7 +94,7 @@ where
     
     /// Zero median data produced by subtracting the median.
     /// Analogous to zero mean data when subtracting the mean.
-    fn zeromedian(self, quantify: &mut Q) -> Result<Vec<f64>,MedError<String>> {
+    fn zeromedian(self, quantify: &mut impl FnMut(&T)->f64) -> Result<Vec<f64>,MedError<String>> {
         let median = self.median(quantify)?; 
         Ok(self.iter().map(|s| quantify(s)-median).collect())
     }
@@ -110,9 +108,9 @@ where
     /// let v2 = vec![14_f64,1.,13.,2.,12.,3.,11.,4.,10.,5.,9.,6.,8.,7.];
     /// assert_eq!(v1.mediancorr(&v2,&mut |f:&f64| *f).unwrap(),-0.1076923076923077);
     /// ```
-    fn mediancorr(self, v: &[T], quantify: &mut Q) -> Result<f64,MedError<String>>
+    fn mediancorr(self, v: &[T], quantify: &mut impl FnMut(&T)->f64) -> Result<f64,MedError<String>>
     { 
-        let mut sxy= 0_f64;
+        let mut sxy = 0_f64;
         let mut sy2 = 0_f64;
         let sx2: f64 = self.zeromedian(quantify)?
         .into_iter()
@@ -131,7 +129,7 @@ where
     /// MAD is more stable than standard deviation and more general than quartiles.
     /// When argument `med` is the median, it is the most stable measure of data dispersion.
     /// However, any central tendency can be used.
-    fn mad(self, med: f64, quantify: &mut Q) -> Result<f64,MedError<String>> {
+    fn mad(self, med: f64, quantify: &mut impl FnMut(&T)->f64) -> Result<f64,MedError<String>> {
         self.iter()
             .map(|s| ((quantify(s) - med).abs()))
             .collect::<Vec<f64>>()
@@ -139,7 +137,7 @@ where
     }
 
     /// Centre and dispersion defined by median
-    fn medstats(self, quantify: &mut Q) -> Result<MStats,MedError<String>> {
+    fn medstats(self, quantify: &mut impl FnMut(&T)->f64) -> Result<MStats,MedError<String>> {
         let centre = self.median(quantify)?;
         Ok(MStats {
             centre,
@@ -148,7 +146,7 @@ where
     }
 
     /// Full median information: central tendency, quartiles and MAD spread
-    fn medinfo(self, quantify: &mut Q ) -> Result<Med,MedError<String>> {
+    fn medinfo(self, quantify: &mut impl FnMut(&T)->f64) -> Result<Med,MedError<String>> {
         let mut deref = |t:&f64| *t;
         let mut equals = 0_usize;
         let mut posdifs: Vec<f64> = Vec::new();
