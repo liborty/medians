@@ -23,8 +23,8 @@ fn text() {
         I care for nobody, no not I, and nobody cares for me. Tee hee heee.";
     let v = song.split(' ').collect::<Vec<_>>();
     println!("{}", v.gr()); // Display
-    println!("Hash sorted by word lengths: {}",v.sorth(&mut |s:&&str| s.len() as f64,true).gr());
-    let median_word = v.median(&mut |s:&&str| s.len() as f64)
+    println!("Hash sorted by word lengths: {}",v.sorth(&mut |&s| s.len() as f64,true).gr());
+    let median_word = v.median(&mut |&s| s.len() as f64)
         .expect("text(): Median failed\n");
     println!("Median word length in bytes is: {}",median_word.yl());
     }
@@ -52,7 +52,7 @@ fn errors() {
         for _ in 0..n { 
             let v = ranvu8(d).unwrap(); // random vector  
             let med = v.median(&mut |t:&u8| *t as f64).expect("even errors test");  
-            error += balance(&v,med);
+            error += balance(&v,med,&mut |f| *f as f64);
             // println!("{} balance: {}",med, balance(&v,med) );
         };
         println!("\nEven lengths: {GR}{}{UN}, repeats: {GR}{}{UN}, errors: {GR}{}{UN}",d,n,error); 
@@ -60,7 +60,7 @@ fn errors() {
         for _ in 0..n {
             let v = ranvu8(d+1).unwrap(); // random vector
             let med = v.median(&mut |t:&u8| *t as f64).expect("odd errors test");
-            error += balance(&v,med);
+            error += balance(&v,med,&mut |f| *f as f64);
         };
         println!("Odd lengths:  {GR}{}{UN}, repeats: {GR}{}{UN}, errors: {GR}{}{UN}",d+1,n,error);
     }

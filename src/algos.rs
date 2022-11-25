@@ -1,15 +1,12 @@
 use core::ops::Range;
 
 /// measure errors in median
-pub fn balance<T>(s: &[T], x: f64) -> i64
-where
-    T: Copy,
-    f64: From<T>,
+pub fn balance<T>(s: &[T], x: f64, quantify: &mut impl FnMut(&T) -> f64) -> i64
 {
     let mut above = 0_i64;
     let mut below = 0_i64;
-    for &si in s {
-        let sif = f64::from(si);
+    for si in s {
+        let sif = quantify(si);
         if sif > x {
             above += 1;
         } else if sif < x {
@@ -83,7 +80,6 @@ fn fmax(s: &[f64], rng: Range<usize>) -> f64 {
 /// but on average it is faster than finding the real maximum and minimum.
 /// Those are now found during the first data splitting, which saves some comparisons per data item.
 pub fn auto_median<T>(set: &[T], quantify: &mut impl FnMut(&T) -> f64) -> f64
-where
 {
     let n = set.len();
     let mut pivot = 0_f64;
@@ -97,16 +93,16 @@ where
         .collect::<Vec<f64>>();
     pivot /= n as f64; // using arithmetic mean as the pivot
     if (n & 1) == 1 {
-        b_med_odd(fset, 0..n, pivot)
+        med_odd(fset, 0..n, pivot)
     } else {
-        b_med_even(fset, 0..n, pivot)
+        med_even(fset, 0..n, pivot)
     }
 }
 
 /// Reducing sets iterative median using secant
 /// with proportionally subdivided data range as a pivot.
 /// Need is a count of items from start of set to expected median position
-fn b_med_odd(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
+pub fn med_odd(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
     let need = rng.len() / 2; // need as subscript (one less)
     loop {
         let gtsub = fpart(&mut set, &rng, pivot); 
@@ -130,7 +126,7 @@ fn b_med_odd(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
 /// Reducing sets median using secant
 /// with proportionally subdivided data range as a pivot.
 /// Need is a count of items from start of set to anticipated median position
-fn b_med_even(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
+pub fn med_even(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
     let need = rng.len() / 2 - 1; 
     loop { 
         let gtsub = fpart(&mut set, &rng, pivot); 
