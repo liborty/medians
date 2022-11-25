@@ -46,7 +46,7 @@ fn comparison() {
 #[test]
 fn errors() { 
     let n = 10_usize; // number of vectors to test for each magnitude
-    set_seeds(777777777_u64);   // intialise random numbers generator
+    set_seeds(77777777_u64);   // intialise random numbers generator
     for d in [10,50,100,1000,10000,100000] { 
         let mut error = 0_i64; 
         for _ in 0..n { 

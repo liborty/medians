@@ -151,3 +151,4 @@ fn b_med_even(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
         else { pivot = newpivot; };         
     }
 }
+ 

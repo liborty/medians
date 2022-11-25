@@ -87,7 +87,7 @@ impl<T> Median<T> for &[T]
         match n {
         0 => { Err(MedError::SizeError("median: zero length data".to_owned())) },
         1 => { Ok( quantify(&self[0])) },
-        2 => { Ok( quantify(&self[0])+quantify(&self[1])/2.0) },
+        2 => { Ok( (quantify(&self[0])+quantify(&self[1]))/2.0 ) },
         _ => { Ok(auto_median(self,quantify)) }
         } 
     }
