@@ -22,12 +22,17 @@ Nevertheless, the problem with this approach is that, even when using a good qua
 
 Therefore the naive median could not compete and it has now been deleted (as of version 2.0.0).
 
-## The Algorithm
+## The Algorithms
 
+* `median`
+Iteratively partitions data around a pivot estimate (the arithmetic mean of the data). This is reasonably well centred and it is very fast to compute (summation being faster than comparisons and memory manipulations of 'median of medians'). This algorithm has linear complexity.
 
+* `odd_strict_median`
+Returns the midpoint of type T, which could be any complex unquantifiable struct. Traits Ord and Clone have to be implemented for T.  
+The algorithm uses `BinaryHeap<T>` to find the unsorted minimum n/2+1 items and then picks their maximum (which is at the root of the max heap already). Thus all comparisons and swaps are kept to the minimum. Furthermore, only pointers to T items are being manipulated, minimising also the moving of the potentially bulky original data items.
 
-* `auto_median`
-Iteratively partitions data around a pivot estimate (the arithmetic mean of the data). This is not the most sophisticated estimate but it is reasonably well centred and it is the fastest to compute (summation being faster than comparisons and memory manipulations). This algorithm has nearly linear complexity.
+* `even_strict_median`
+As the data items T are unquantifiable, we can not simply average the two midpoints of even length data, as we did in `median`. So we return them both as a tuple, the smaller one first. Otherwise very similar to `odd_strict_median`.
 
 * `median`
 is the main public entry point, implemented as a method of trait `Median`.
@@ -41,28 +46,39 @@ is the main public entry point, implemented as a method of trait `Median`.
 
 ```rust
 /// Fast 1D medians and associated information and tasks
-pub trait Median<T,Q> {
+pub trait Median<T> {
     /// Finds the median of `&[T]`, fast
-    fn median(self, quantify: &mut Q ) -> Result<f64,MedError<String>>;
-    /// Zero median f64 data produced by finding and subtracting the median. 
-    fn zeromedian(self, quantify: &mut Q) -> Result<Vec<f64>,MedError<String>>; 
+    fn median(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, ME>;
+    /// Finds the median of odd sized nonquantifiable Ord data
+    fn odd_strict_median(self) -> T
+    where
+        T: Ord + Clone;
+    /// Finds the two mid values of even sized nonquantifiable Ord data
+    fn even_strict_median(self) -> (T,T)
+    where
+        T: Ord + Clone;
+    /// Zero median f64 data produced by finding and subtracting the median.
+    fn zeromedian(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Vec<f64>, ME>;
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn mediancorr(self, v: &[T], quantify: &mut Q) -> Result<f64,MedError<String>>;
+    fn mediancorr(
+        self,
+        v: &[T],
+        quantify: &'static mut impl FnMut(&T) -> f64,
+    ) -> Result<f64, MedError<String>>;
     /// Median of absolute differences (MAD).
-    fn mad(self, med: f64, quantify: &mut Q ) -> Result<f64,MedError<String>>; 
+    fn mad(self, med: f64, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, ME>;
     /// Median and MAD.
-    fn medstats(self, quantify: &mut Q ) -> Result<MStats,MedError<String>>;
+    fn medstats(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<MStats, ME>;
     /// Median, quartiles, MAD, Stderr
-    fn medinfo(self, quantify: &mut Q ) -> Result<Med,MedError<String>>;
+    fn medinfo(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Med, ME>;
 }
-
-impl<T,Q> Median<T,Q> for &[T]
-where
-    Q: FnMut(&T) -> f64
-{ ... }
 ```
 
 ## Release Notes
+
+**Version 2.0.3** - Added methods `odd_strict_median` and `even_strict_median` to trait `Median<T>`. 
+These methods apply in classical situations where T is unquantifiable, only Ord(erable). They are about 1.75 times slower.
+However, this is only a constant factor which does not grow with the length of data.
 
 **Version 2.0.2** - Removed trait parameter Q to ease external usage.
 
