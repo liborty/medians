@@ -19,16 +19,19 @@ const CLOSURESU8:[fn(&[u8]);2] = [
 
 #[test]
 fn text() {
-    let song = "There was a jolly miller once who lived on the river Dee. \
+    let song = "There was a *jolly* miller once who lived on the river Dee. \
         From morn till night all day he sang for a jolly old fellow was he; \
         and this forever the burden of his song seemed to be: \
-        I care for nobody, no not I, and nobody cares for me. Tee hee heee.";
+        I care for nobody, no not I, and nobody cares for me. \
+        Tee hee heee, quoth he.";
     let v = song.split(' ').collect::<Vec<_>>();
     println!("{}", v.gr()); // Display
     println!("Hash sorted by word lengths: {}",v.sorth(&mut |&s| s.len() as f64,true).gr());
     let median_word = v.median(&mut |&s| s.len() as f64)
         .expect("text(): Median failed\n");
     println!("Median word length in bytes is: {}",median_word.yl());
+    println!("Merge sorted by lexicon: {}",v.sortm(true).gr());
+    println!("Median lexographic word: {}",v.odd_strict_median().yl());
     }
 
 /*

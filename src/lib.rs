@@ -84,7 +84,7 @@ pub trait Median<T> {
     fn mediancorr(
         self,
         v: &[T],
-        quantify: &'static mut impl FnMut(&T) -> f64,
+        quantify: &mut impl FnMut(&T) -> f64,
     ) -> Result<f64, MedError<String>>;
     /// Median of absolute differences (MAD).
     fn mad(self, med: f64, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, ME>;
@@ -136,14 +136,14 @@ impl<T> Median<T> for &[T] {
     /// ```
     /// use medians::Median;
     /// let v1 = vec![1_f64,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.];
-    /// let v2 = vec![14_f64,1.,13.,2.,12.,3.,11.,4.,10.,5.,9.,6.,8.,7.];
-    /// assert_eq!(v1.mediancorr(&v2,&mut |f:&f64| *f).unwrap(),-0.1076923076923077);
+    /// let v2 = vec![14_f64,1.,13.,2.,12.,3.,11.,4.,10.,5.,9.,6.,8.,7.]; 
+    /// assert_eq!(v1.mediancorr(&v2, &mut |f:&f64| *f).unwrap(),-0.1076923076923077);
     /// ```
     fn mediancorr(
         self,
         v: &[T],
-        quantify: &'static mut impl FnMut(&T) -> f64,
-    ) -> Result<f64, MedError<String>> {
+        quantify: &mut impl FnMut(&T) -> f64,
+    ) -> Result<f64, ME> {
         let mut sx2 = 0_f64;
         let mut sy2 = 0_f64;
         let selfmedian = self.median(quantify)?;
