@@ -28,7 +28,7 @@ Therefore the naive median could not compete and it has now been deleted (as of 
 Iteratively partitions data around a pivot estimate (the arithmetic mean of the data). This is reasonably well centred and it is very fast to compute (summation being faster than comparisons and memory manipulations of 'median of medians'). This algorithm has linear complexity.
 
 * `odd_strict_median`
-Returns the midpoint of type T, which could be any complex unquantifiable struct. Traits Ord and Clone have to be implemented for T.  
+Returns the midpoint of type T, which could be any complex unquantifiable struct type. Traits Ord and Clone have to be implemented for T.  
 The algorithm uses `BinaryHeap<T>` to find the unsorted minimum n/2+1 items and then picks their maximum (which is at the root of the max heap already). Thus all comparisons and swaps are kept to the minimum. Furthermore, only pointers to T items are being manipulated, minimising also the moving of the potentially bulky original data items.
 
 * `even_strict_median`
@@ -76,8 +76,8 @@ pub trait Median<T> {
 
 ## Release Notes
 
-**Version 2.0.3** - Added methods `odd_strict_median` and `even_strict_median` to trait `Median<T>`. 
-These methods apply in classical situations where T is unquantifiable, only Ord(erable). They are about 1.75 times slower.
+**Version 2.0.3** - Added methods `odd_strict_median` and `even_strict_median` to trait `Median<T>`.
+These methods apply in classical situations where T is unquantifiable, only Ord(ered). They are about 1.75 times slower.
 However, this is only a constant factor which does not grow with the length of data.
 
 **Version 2.0.2** - Removed trait parameter Q to ease external usage.
