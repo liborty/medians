@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
-use medians::Median;
+use medians::{Medianf64,Median};
 use medians::algos::{balance,auto_median};
 use ran::{*,generators::*};
 use indxvec::{ here, printing::*, Indices, Printing, Vecops, Mutops};
@@ -10,12 +10,12 @@ use ran::*;
 use std::convert::From;
 use times::{benchu8,benchu64,benchf64,mutbenchf64};
 
-const NAMES:[&str;2] = [ "auto_median","strict_medians" ];
+const NAMES:[&str;2] = [ "medianf64","quantized median" ];
 
-const CLOSURESU8:[fn(&[u8]);2] = [ 
-    |v:&[_]| { auto_median(v,&mut |&x| x.into()); }, 
-    // |v:&mut [_]| { partial_median(v); },
-    |v:&[_]| { v.odd_strict_median(); } ];
+const CLOSURESF64:[fn(&mut[f64]);2] = [ 
+    |v:&mut[_]| { v.medianf64().unwrap(); },
+    |v:&mut[_]| { auto_median(v,&mut |&x| x); } ];  // use x.into() when not f64
+   // |v:&[_]| { v.odd_strict_median(); } ];
 
 #[test]
 fn text() {
@@ -68,7 +68,7 @@ fn minmax() {
 fn comparison() {
     set_seeds(7777777777_u64);   // intialise random numbers generator
     // Rnum encapsulates the type of the data items
-   benchu8(Rnum::newu8(),4..10000,500,10,&NAMES,&CLOSURESU8); 
+   mutbenchf64(Rnum::newf64(),4..10000,500,10,&NAMES,&CLOSURESF64); 
 }
 
 
@@ -88,7 +88,7 @@ fn errors() {
             error += balance(&v,(med1 as f64 + med2 as f64)/2.,&mut |f| *f as f64);
             // println!("{} balance: {}",med, balance(&v,med) );
         };
-        println!("\nEven lengths: {GR}{}{UN}, repeats: {GR}{}{UN}, errors: {GR}{}{UN}",d,n,error); 
+        println!("\nEven lengths: {GR}{d}{UN}, repeats: {GR}{n}{UN}, errors: {GR}{error}{UN}"); 
         error = 0_i64; 
         
         for _ in 0..n {

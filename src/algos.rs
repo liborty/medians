@@ -1,4 +1,3 @@
-// use crate::OneTwo;
 use core::ops::Range;
 
 /// measure errors in median
@@ -83,10 +82,22 @@ fn fmax(s: &[f64], rng: Range<usize>) -> f64 {
 
 /// Iterative median, partitioning data range by mean as an estimated pivot.
 /// on average this is faster than finding the midpoint between maximum and minimum values.
+pub fn autof64(set: &mut [f64]) -> f64 {
+    let n = set.len();
+    let pivot = set.iter().sum::<f64>()/(n as f64); // using arithmetic mean as the pivot
+    if (n & 1) == 1 {
+        med_odd(set, 0..n, pivot)
+    } else {
+        med_even(set, 0..n, pivot)
+    } 
+}
+
+/// Iterative median, partitioning data range by mean as an estimated pivot.
+/// on average this is faster than finding the midpoint between maximum and minimum values.
 pub fn auto_median<T>(set: &[T], quantify: &mut impl FnMut(&T) -> f64) -> f64 {
     let n = set.len();
     let mut pivot = 0_f64;
-    let fset = set
+    let mut fset = set
         .iter()
         .map(|tval| {
             let fval = quantify(tval);
@@ -96,26 +107,26 @@ pub fn auto_median<T>(set: &[T], quantify: &mut impl FnMut(&T) -> f64) -> f64 {
         .collect::<Vec<f64>>();
     pivot /= n as f64; // using arithmetic mean as the pivot
     if (n & 1) == 1 {
-        med_odd(fset, 0..n, pivot)
+        med_odd(&mut fset, 0..n, pivot)
     } else {
-        med_even(fset, 0..n, pivot)
+        med_even(&mut fset, 0..n, pivot)
     }
 }
 
 /// Median of an odd sized set is the central value.
-fn med_odd(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
+fn med_odd(set: &mut [f64], mut rng: Range<usize>, mut pivot: f64) -> f64 {
     let need = rng.len() / 2; // need as subscript (one less)
     loop {
-        let gtsub = fpart(&mut set, &rng, pivot);
+        let gtsub = fpart(set, &rng, pivot);
         if need < gtsub {
             rng.end = gtsub;
             if need + 1 == gtsub {
-                return fmax(&set, rng.start..gtsub);
+                return fmax(set, rng.start..gtsub);
             };
         } else {
             rng.start = gtsub;
             if need == gtsub {
-                return fmin(&set, gtsub..rng.end);
+                return fmin(set, gtsub..rng.end);
             };
         };
         let newpivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / rng.len() as f64;
@@ -130,18 +141,18 @@ fn med_odd(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
 }
 
 /// Median of an even sized set is half of the sum of the two central values.
-pub fn med_even(mut set: Vec<f64>, mut rng: Range<usize>, mut pivot: f64) -> f64 {
+pub fn med_even(set: &mut [f64], mut rng: Range<usize>, mut pivot: f64) -> f64 {
     let need = rng.len() / 2 - 1;
     loop {
-        let gtsub = fpart(&mut set, &rng, pivot);
+        let gtsub = fpart(set, &rng, pivot);
         if need < gtsub {
             if need + 1 == gtsub {
-                return (fmax(&set, rng.start..gtsub) + fmin(&set, gtsub..rng.end)) / 2.;
+                return (fmax(set, rng.start..gtsub) + fmin(set, gtsub..rng.end)) / 2.;
             };
             rng.end = gtsub;
         } else {
             if need == gtsub {
-                fmin2(&set, gtsub..rng.end);
+                fmin2(set, gtsub..rng.end);
             }
             rng.start = gtsub;
         };
