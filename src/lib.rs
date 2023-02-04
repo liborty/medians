@@ -118,12 +118,12 @@ impl std::fmt::Display for MStats {
 }
 /// Fast 1D f64 medians and associated information and tasks
 pub trait Medianf64 {
-    /// Finds the median of `&mut[f64]`, fast
+    /// Finds the median of `&[f64]`, fast
     fn medianf64(self) -> Result<f64, ME>; 
     /// Zero median f64 data produced by finding and subtracting the median.
     fn zeromedianf64(self) -> Result<Vec<f64>, ME>;
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn mediancorrf64(self, v: &mut[f64] ) -> Result<f64, MedError<String>>;
+    fn mediancorrf64(self, v: &[f64] ) -> Result<f64, MedError<String>>;
     /// Median of absolute differences (MAD).
     fn madf64(self, med: f64) -> Result<f64, ME>;
     /// Median and MAD.
@@ -131,7 +131,7 @@ pub trait Medianf64 {
     /// Median, quartiles, MAD, Stderr
     fn medinfof64(self) -> Result<Med, ME>;
 }
-impl Medianf64 for &mut [f64] {
+impl Medianf64 for &[f64] {
     /// Median using user defined quantification, allowing T->f64 conversion and
     /// then very efficient pivoting using the mean
     fn medianf64(self) -> Result<f64, ME> {
@@ -155,12 +155,12 @@ impl Medianf64 for &mut [f64] {
     /// zero median vectors (analogously to Pearson's zero mean vectors)
     /// # Example
     /// ```
-    /// use medians::Median;
+    /// use medians::Medianf64;
     /// let v1 = vec![1_f64,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.];
     /// let v2 = vec![14_f64,1.,13.,2.,12.,3.,11.,4.,10.,5.,9.,6.,8.,7.]; 
-    /// assert_eq!(v1.mediancorr(&v2, &mut |f:&f64| *f).unwrap(),-0.1076923076923077);
+    /// assert_eq!(v1.mediancorrf64(&v2).unwrap(),-0.1076923076923077);
     /// ```
-    fn mediancorrf64(self,v: &mut[f64]) -> Result<f64, ME> {
+    fn mediancorrf64(self,v: &[f64]) -> Result<f64, ME> {
         let mut sx2 = 0_f64;
         let mut sy2 = 0_f64;
         let selfmedian = self.medianf64()?;

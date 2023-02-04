@@ -10,12 +10,12 @@ use ran::*;
 use std::convert::From;
 use times::{benchu8,benchu64,benchf64,mutbenchf64};
 
-const NAMES:[&str;2] = [ "medianf64","quantized median" ];
+const NAMES:[&str;2] = [ "medianf64","quantized median" ]; //, "strict meadian" ];
 
-const CLOSURESF64:[fn(&mut[f64]);2] = [ 
-    |v:&mut[_]| { v.medianf64().unwrap(); },
-    |v:&mut[_]| { auto_median(v,&mut |&x| x); } ];  // use x.into() when not f64
-   // |v:&[_]| { v.odd_strict_median(); } ];
+const CLOSURESF64:[fn(&[f64]);2] = [ 
+    |v:&[_]| { v.medianf64().unwrap(); },
+    |v:&[_]| { auto_median(v,&mut |&x| x); } ];  // use x.into() when not f64
+    // |v:&[_]| { v.odd_strict_median(); } ];
 
 #[test]
 fn text() {
@@ -68,7 +68,7 @@ fn minmax() {
 fn comparison() {
     set_seeds(7777777777_u64);   // intialise random numbers generator
     // Rnum encapsulates the type of the data items
-   mutbenchf64(Rnum::newf64(),4..10000,500,10,&NAMES,&CLOSURESF64); 
+   benchf64(Rnum::newf64(),4..10000,500,10,&NAMES,&CLOSURESF64); 
 }
 
 

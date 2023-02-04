@@ -23,14 +23,18 @@ Therefore the naive median can not compete. It has been deleted as of version 2.
 ## Better Algorithms
 
 * `medianf64 and auto_median`
-Iteratively partition data around a pivot estimate (the arithmetic mean of the data). This is reasonably well centred and is fast to compute (summation being faster than comparisons and memory manipulations of 'median of medians'). This algorithm has linear complexity.
+Iteratively partitions data around a pivot estimate. In the past, we estimated the pivot by a secant method. However, this needs both end points of the current interval, that is the maximum and minimum of the data (sub)set, which are relatively expensive to find, involving many comparisons. The arithmetic mean of the data is faster to compute. Summation being faster than comparisons and memory manipulations of 'median of medians' or the previous method. 
+
+Now we use our novel method of estimating the pivot position. The estimate is the data mean, 
+inversely weighted by how many items remain to reach the midpoint. This algorithm has linear complexity and performs very well.
+Of course, it does rely on the data being quantifiable, as do all non linear equation solving methods.
 
 * `odd_strict_median`
 Returns the midpoint of type T, which could be any complex unquantifiable struct type. Traits Ord and Clone have to be implemented for T.  
 The algorithm uses `BinaryHeap<T>` to find the unsorted minimum n/2+1 items and then picks their maximum (which is at the root of the max heap already). Thus all comparisons and swaps are kept to the minimum. Furthermore, only pointers to T items are being manipulated, minimising also the moving of the potentially bulky original data items.
 
 * `even_strict_median`
-As the data items T are unquantifiable, we can not simply average the two midpoints of even length data, as we did in `median`. So we return them both as a tuple, the smaller one first. Otherwise very similar to `odd_strict_median`.
+As the data items T are now unquantifiable, we can not simply average the two midpoints of even length data, as we did before. So we return them both as a tuple, the smaller one first. Otherwise very similar to `odd_strict_median`.
 
 ## Structs
 
@@ -41,17 +45,17 @@ As the data items T are unquantifiable, we can not simply average the two midpoi
 
 We list the provided traits in the order of decreasing speed and increasing generality.
 
-Thus Medianf64 is the fastest and simplest implementation, for data of end type f64. It is implemented here for a mutable slice of data, which will get partitioned during the process.
+Thus Medianf64 is the fastest and simplest implementation, for data of type &[f64].
 
 ```rust
 /// Fast 1D f64 medians and associated information and tasks
 pub trait Medianf64 {
-    /// Finds the median of `&mut[f64]`, fast
+    /// Finds the median of `&[f64]`, fast
     fn medianf64(self) -> Result<f64, ME>; 
     /// Zero median f64 data produced by finding and subtracting the median.
     fn zeromedianf64(self) -> Result<Vec<f64>, ME>;
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn mediancorrf64(self, v: &mut[f64] ) -> Result<f64, MedError<String>>;
+    fn mediancorrf64(self, v: &[f64] ) -> Result<f64, MedError<String>>;
     /// Data spread measure: median of absolute differences (MAD).
     fn madf64(self, med: f64) -> Result<f64, ME>;
     /// Median and MAD.
@@ -98,6 +102,8 @@ Normally, on f64s, it is of course more efficient to use Median64 trait.
 Only non numeric unquantizable types need the slowest, strict medians algorithms.
 
 ## Release Notes
+
+**Version 2.0.7** - Gained some more speed by a new invention: 'secant mean pivoting'. Made `Medianf64` methods to be non-destructive, at the cost of cloning the data.
 
 **Version 2.0.6** - Added trait Medianf64 for simplicity and speed over f64 data.
 

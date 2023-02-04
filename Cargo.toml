@@ -1,6 +1,6 @@
 [package]
 name = "medians"
-version = "2.0.6"
+version = "2.0.7"
 authors = ["Libor Spacek"]
 edition = "2021"
 description = "Median, Statistical Measures, Mathematics, Statistics"

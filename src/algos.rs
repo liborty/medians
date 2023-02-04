@@ -82,13 +82,14 @@ fn fmax(s: &[f64], rng: Range<usize>) -> f64 {
 
 /// Iterative median, partitioning data range by mean as an estimated pivot.
 /// on average this is faster than finding the midpoint between maximum and minimum values.
-pub fn autof64(set: &mut [f64]) -> f64 {
+pub fn autof64(set: &[f64]) -> f64 {
     let n = set.len();
-    let pivot = set.iter().sum::<f64>()/(n as f64); // using arithmetic mean as the pivot
+    let mut fset = set.to_owned();
+    let pivot = fset.iter().sum::<f64>()/(n as f64); // using arithmetic mean as the pivot
     if (n & 1) == 1 {
-        med_odd(set, 0..n, pivot)
+        med_odd(&mut fset, 0..n, pivot)
     } else {
-        med_even(set, 0..n, pivot)
+        med_even(&mut fset, 0..n, pivot)
     } 
 }
 
@@ -129,7 +130,8 @@ fn med_odd(set: &mut [f64], mut rng: Range<usize>, mut pivot: f64) -> f64 {
                 return fmin(set, gtsub..rng.end);
             };
         };
-        let newpivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / rng.len() as f64;
+        let needed = 2.0*(rng.end - need) as f64;
+        let newpivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / needed;  //rng.len() as f64;
         if newpivot == pivot {
             return pivot;
         }
@@ -156,7 +158,8 @@ pub fn med_even(set: &mut [f64], mut rng: Range<usize>, mut pivot: f64) -> f64 {
             }
             rng.start = gtsub;
         };
-        let newpivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / rng.len() as f64;
+        let needed = 2.0*(rng.end - need -1) as f64;
+        let newpivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / needed; // rng.len() as f64;
         if newpivot == pivot {
             return pivot;
         }
