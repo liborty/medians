@@ -67,7 +67,11 @@ fn minmax() {
 fn medf64() {
     set_seeds(7777777777_u64);   // intialise random numbers generator
     let v = ranvf64(10).unwrap();
-    println!("{}\nmedian: {}",v.gr(),v.medianf64().unwrap());
+    let med = v.medianf64().unwrap();
+    println!("{}\nMedian: {}",v.gr(),med.gr());
+    println!("MAD:\t{}",v.madf64(med).unwrap().gr());
+    println!("Medstats: {}",v.medstatsf64().unwrap());
+    println!("Medinfo: {}",v.medinfof64().unwrap());
 }
 
 
