@@ -70,6 +70,20 @@ fn fmin2(s: &[f64], rng: Range<usize>) -> f64 {
     (min1 + min2) / 2.0
 }
 
+fn fmax2(s: &[f64], rng: Range<usize>) -> f64 {
+    let mut max1 = s[rng.start];
+    let mut max2 = max1;
+    for &si in s.iter().take(rng.end).skip(rng.start + 1) {
+        if si > max1 {
+            max2 = max1;
+            max1 = si;
+        } else if si > max2 {
+            max2 = si;
+        }
+    }
+    (max1 + max2) / 2.0
+}
+
 fn fmax(s: &[f64], rng: Range<usize>) -> f64 {
     let mut max = s[rng.start];
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
@@ -130,7 +144,7 @@ fn med_odd(set: &mut [f64], mut rng: Range<usize>, mut pivot: f64) -> f64 {
                 return fmin(set, gtsub..rng.end);
             };
         };
-        let needed = 2.0*(rng.end - need) as f64;
+        let needed = (rng.end - need) as f64;
         let newpivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / needed;  //rng.len() as f64;
         if newpivot == pivot {
             return pivot;
@@ -148,18 +162,21 @@ pub fn med_even(set: &mut [f64], mut rng: Range<usize>, mut pivot: f64) -> f64 {
     loop {
         let gtsub = fpart(set, &rng, pivot);
         if need < gtsub {
+            if need + 2 == gtsub {
+                return fmax2(set, rng.start..gtsub)
+            };
             if need + 1 == gtsub {
                 return (fmax(set, rng.start..gtsub) + fmin(set, gtsub..rng.end)) / 2.;
             };
             rng.end = gtsub;
         } else {
             if need == gtsub {
-                fmin2(set, gtsub..rng.end);
+                return fmin2(set, gtsub..rng.end);
             }
             rng.start = gtsub;
         };
-        let needed = 2.0*(rng.end - need -1) as f64;
-        let newpivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / needed; // rng.len() as f64;
+        let needed = 2.0*(need - rng.start) as f64;
+        let newpivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / needed; // rng.len() as f64; 
         if newpivot == pivot {
             return pivot;
         }

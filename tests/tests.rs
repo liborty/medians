@@ -63,6 +63,13 @@ fn minmax() {
 }
 */
 
+#[test]
+fn medf64() {
+    set_seeds(7777777777_u64);   // intialise random numbers generator
+    let v = ranvf64(10).unwrap();
+    println!("{}\nmedian: {}",v.gr(),v.medianf64().unwrap());
+}
+
 
 #[test]
 fn comparison() {

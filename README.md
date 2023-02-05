@@ -103,6 +103,8 @@ Only non numeric unquantizable types need the slowest, strict medians algorithms
 
 ## Release Notes
 
+**Version 2.0.8** - Added another test. Fixed a typo bug in `Median` and `Medianf64`.
+
 **Version 2.0.7** - Gained some more speed by a new invention: 'secant mean pivoting'. Made `Medianf64` methods to be non-destructive, at the cost of cloning the data.
 
 **Version 2.0.6** - Added trait Medianf64 for simplicity and speed over f64 data.
