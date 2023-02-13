@@ -94,6 +94,8 @@ Only non numeric unquantizable types need the slowest, strict medians algorithms
 
 ## Release Notes
 
+**Version 2.1.0** - Added omitted method `zeromedianf64`. Upped the version.
+
 **Version 2.0.9** - Code simplifications. Removed quartiles and struct Med holding them. Mad, supplied via MStats,can do everything that quartiles did and better.
 
 **Version 2.0.8** - Added another test. Fixed a typo bug in `Median` and `Medianf64`.

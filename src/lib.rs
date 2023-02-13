@@ -95,6 +95,8 @@ impl std::fmt::Display for MStats {
 pub trait Medianf64 {
     /// Finds the median of `&[f64]`, fast
     fn medianf64(self) -> Result<f64, ME>;
+    /// Zero median data produced by subtracting the median.
+    fn zeromedianf64(self) -> Result<Vec<f64>, ME>;
     /// Median correlation = cosine of an angle between two zero median vecs
     fn mediancorrf64(self, v: &[f64]) -> Result<f64, MedError<String>>;
     /// Median of absolute differences (MAD).
@@ -126,6 +128,14 @@ impl Medianf64 for &[f64] {
             Ok(med_even(&mut fset))
         }
     }
+
+    /// Zero median data produced by subtracting the median.
+    /// Analogous to zero mean data when subtracting the mean.
+    fn zeromedianf64(self) -> Result<Vec<f64>, ME> {
+        let median = self.medianf64()?;
+        Ok(self.iter().map(|s| s - median).collect())
+    }
+
 
     /// We define median based correlation as cosine of an angle between two
     /// zero median vectors (analogously to Pearson's zero mean vectors)
