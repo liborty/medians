@@ -1,6 +1,6 @@
 [package]
 name = "medians"
-version = "2.0.8"
+version = "2.0.9"
 authors = ["Libor Spacek"]
 edition = "2021"
 description = "Median, Statistical Measures, Mathematics, Statistics"
@@ -11,7 +11,9 @@ license = "BSD-3-Clause"
 keywords = ["statistics","median"]
 categories = ["science","mathematics","algorithms"]
 include = [
-    "src/*.rs",
+    "src/lib.rs",
+    "src/algos.rs",
+    "src/errors.rs",
     "Cargo.toml",
     "README.md",
     "LICENSE"

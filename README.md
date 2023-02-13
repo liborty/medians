@@ -5,14 +5,16 @@ Fast algorithm for finding 1d medians, implemented in Rust.
 ## Usage
 
 ```rust
-use medians::{Med,MStats,Median};
+use medians::{MStats,Medianf64,Median};
 ```
 
 ## Introduction
 
-Finding the medians is a common task in statistics and general data analysis. At least it should be, if only it did not take so long. We argue in [`rstats`](https://github.com/liborty/rstats), that using the Geometric Median is the most stable way to characterise multidimensional data (nd). That leaves the one dimensional (1d) medians, addressed here. Medians are more stable measure of central tendency than means but they are not used nearly enough. One suspects that this is mostly due to being slower to compute and the fast algorithm developed here being non-trivial. 
+Finding medians is a common task in statistics and general data analysis. At least it should be common. Medians are more stable measure of central tendency than means. They are not used nearly enough, one suspects simply due to being slower and more difficult to compute. The fast algorithms developed here are non-trivial.
 
-See [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs) as examples of usage. Their automatically generated output can be found by clicking the 'test' icon at the top of this document and then examining the latest log.
+We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geometric Median is the most stable way to characterise multidimensional data (nd). That leaves the one dimensional (1d) medians, addressed here.
+
+See [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs) for examples of usage. Their automatically generated output can also be found by clicking the 'test' icon at the top of this document and then examining the latest log.
 
 ## Naive Median
 
@@ -20,55 +22,49 @@ Median can be found by sorting the list of data and then picking the midpoint. E
 
 Therefore the naive median can not compete. It has been deleted as of version 2.0.0.
 
-## Better Algorithms
+## Fast Algorithms
 
-* `medianf64 and auto_median`
-Iteratively partitions data around a pivot estimate. In the past, we estimated the pivot by a secant method. However, this needs both end points of the current interval, that is the maximum and minimum of the data (sub)set, which are relatively expensive to find, involving many comparisons. The arithmetic mean of the data is faster to compute. Summation being faster than comparisons and memory manipulations of 'median of medians' or the previous method. 
+**`medianf64`** (in trait Medianf64)   
+Iteratively partitions data around a pivot. The arithmetic mean is used as the pivot estimate. Summation is faster to compute than comparisons and memory manipulations of currently popular 'median of medians' methods.
 
-Now we use our novel method of estimating the pivot position. The estimate is the data mean, 
-inversely weighted by how many items remain to reach the midpoint. This algorithm has linear complexity and performs very well.
-Of course, it does rely on the data being quantifiable, as do all non linear equation solving methods.
+This algorithm has linear complexity and performs very well. However, it does rely on the data being of end type f64.
 
-* `odd_strict_median`
-Returns the midpoint of type T, which could be any complex unquantifiable struct type. Traits Ord and Clone have to be implemented for T.  
-The algorithm uses `BinaryHeap<T>` to find the unsorted minimum n/2+1 items and then picks their maximum (which is at the root of the max heap already). Thus all comparisons and swaps are kept to the minimum. Furthermore, only pointers to T items are being manipulated, minimising also the moving of the potentially bulky original data items.
+We also supply `trait Median` for applications when data can be converted to f64. This is accomplished in a general way by a user defined explicit 'quantify' closure. Whenever the quantification is possible, it is the recommended way, as these algorithms are generally faster and always supply f64 type results.
 
-* `even_strict_median`
-As the data items T are now unquantifiable, we can not simply average the two midpoints of even length data, as we did before. So we return them both as a tuple, the smaller one first. Otherwise very similar to `odd_strict_median`.
+**`odd_strict_median`** (in trait Median)  
+Returns the midpoint of type T, which could be any complex unquantifiable struct type. Only traits Ord and Clone have to be implemented for T.
 
-## Structs
+This algorithm uses `BinaryHeap<T>` to find the unsorted minimum n/2+1 items and then picks their maximum (which is at the root of the max heap already). Thus all comparisons and swaps are kept to the minimum. Furthermore, only pointers to `<T>` items are being manipulated, minimising also the moving of the potentially bulky original end data items.
 
-* **MStats** - centre (here the median), and the data dispersion measure. Here it is MAD = median of absolute differences from the median. MAD is the most stable measure of data spread.
-* **Med** - median, lower and upper quartiles, MAD and standard error.
+**`even_strict_median`**  
+When the data items are unquantifiable, we can not simply average the two midpoints of even length data, as we did before. So we return them both as a pair tuple, the lesser one first. Otherwise very similar to `odd_strict_median`. However, note that these two methods return results of different types, so the user has to deal with them explicitly, as appropriate.
+
+## `Struct MStats`
+
+Holds the sample parameters: centre (here the median), and the dispersion measure, (here MAD = median of absolute differences from the median). MAD is the most stable measure of data spread. In other contexts this struct can hold the mean and the standard deviation, as computed in crate RStats.
 
 ## Trait Medianf64
 
-We list the provided traits in the order of decreasing speed and increasing generality.
-
-Thus Medianf64 is the fastest and simplest implementation, for data of type &[f64].
+This is the fastest and simplest implementation for data of type &[f64].
 
 ```rust
-/// Fast 1D f64 medians and associated information and tasks
+///Fast 1D f64 medians and associated information and tasks
 pub trait Medianf64 {
     /// Finds the median of `&[f64]`, fast
-    fn medianf64(self) -> Result<f64, ME>; 
-    /// Zero median f64 data produced by finding and subtracting the median.
-    fn zeromedianf64(self) -> Result<Vec<f64>, ME>;
+    fn medianf64(self) -> Result<f64, ME>;
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn mediancorrf64(self, v: &[f64] ) -> Result<f64, MedError<String>>;
-    /// Data spread measure: median of absolute differences (MAD).
+    fn mediancorrf64(self, v: &[f64]) -> Result<f64, MedError<String>>;
+    /// Median of absolute differences (MAD).
     fn madf64(self, med: f64) -> Result<f64, ME>;
     /// Median and MAD.
     fn medstatsf64(self) -> Result<MStats, ME>;
-    /// Median, quartiles, MAD, Stderr
-    fn medinfof64(self) -> Result<Med, ME>;
 }
 ```
 
 ## Trait Median
 Is the generic version of Medianf64. All the methods take an extra argument, a quantification closure, which evaluates T to f64.
 ```rust
-/// Fast 1D medians and associated information and tasks
+/// Fast 1D generic medians and associated information and tasks
 pub trait Median<T> {
     /// Finds the median of `&[T]`, fast
     fn median(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, ME>;
@@ -77,23 +73,18 @@ pub trait Median<T> {
     where
         T: Ord + Clone;
     /// Finds the two mid values of even sized nonquantifiable Ord data
-    fn even_strict_median(self) -> (T,T)
+    fn even_strict_median(self) -> (T, T)
     where
         T: Ord + Clone;
     /// Zero median f64 data produced by finding and subtracting the median.
     fn zeromedian(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Vec<f64>, ME>;
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn mediancorr(
-        self,
-        v: &[T],
-        quantify: &'static mut impl FnMut(&T) -> f64,
-    ) -> Result<f64, MedError<String>>;
+    fn mediancorr(self, v: &[T], quantify: &mut impl FnMut(&T) -> f64) 
+        -> Result<f64, MedError<String>>;
     /// Median of absolute differences (MAD).
     fn mad(self, med: f64, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, ME>;
     /// Median and MAD.
     fn medstats(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<MStats, ME>;
-    /// Median, quartiles, MAD, Stderr
-    fn medinfo(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Med, ME>;
 }
 ```
 Lib.rs gives an example Ordf64 struct, which is a wrapped f64 that implements Ord. This would enable the use of strict medians on f64 data. Remember that the strict medians require their T to be Ord.
@@ -102,6 +93,8 @@ Normally, on f64s, it is of course more efficient to use Median64 trait.
 Only non numeric unquantizable types need the slowest, strict medians algorithms.
 
 ## Release Notes
+
+**Version 2.0.9** - Code simplifications. Removed quartiles and struct Med holding them. Mad, supplied via MStats,can do everything that quartiles did and better.
 
 **Version 2.0.8** - Added another test. Fixed a typo bug in `Median` and `Medianf64`.
 

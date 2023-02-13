@@ -3,7 +3,7 @@
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
 use medians::{Medianf64,Median};
-use medians::algos::{balance,auto_median};
+use medians::algos::{balance,spart,fpart};
 use ran::{*,generators::*};
 use indxvec::{ here, printing::*, Indices, Printing, Vecops, Mutops};
 use ran::*;
@@ -14,8 +14,30 @@ const NAMES:[&str;2] = [ "medianf64","quantized median" ]; //, "strict meadian" 
 
 const CLOSURESF64:[fn(&[f64]);2] = [ 
     |v:&[_]| { v.medianf64().unwrap(); },
-    |v:&[_]| { auto_median(v,&mut |&x| x); } ];  // use x.into() when not f64
+    |v:&[_]| { v.median(&mut |&x| x).unwrap(); } ];  // use x.into() when not f64
     // |v:&[_]| { v.odd_strict_median(); } ];
+
+#[test]
+fn sparting() {
+    let mut v = [1.,2.,3.,5.,9.,1.,2.,4.,8.,7.,6.,5.,5.,7.,5.,5.,4.,3.,2.,5.,1.,6.];
+    let len = v.len();
+    let pivot = 6.;
+    println!("Input set:\t{}",v.gr());     
+    let gpart = spart(&mut v,0,len,pivot);
+    println!("Pivot {}\nltset,geset:\t{GR}[{},{}]{UN}",
+        pivot.yl(),&v[0..gpart].to_plainstr(),&v[gpart..len].to_plainstr()); 
+}
+
+#[test]
+fn fparting() {
+    let mut v = [1.,2.,3.,5.,9.,1.,2.,4.,8.,7.,6.,5.,5.,7.,5.,5.,4.,3.,2.,5.,1.,6.];
+    let len = v.len();
+    let pivot = 6.;
+    println!("Input set:\t{}",v.gr());     
+    let (gpart,eq) = fpart(&mut v,0,len,pivot);
+    println!("Pivot {} equals: {}\nltset,geset:\t{GR}[{},{}]{UN}",
+        pivot.yl(),eq.yl(),&v[0..gpart].to_plainstr(),&v[gpart..len].to_plainstr()); 
+}
 
 #[test]
 fn text() {
@@ -34,35 +56,6 @@ fn text() {
     println!("Even median lexographic words: {}",v.even_strict_median().yl());
     }
 
-/*
-#[test]
-fn parting() {
-    let v = [5.,9.,1.,2.,8.,7.,6.,5.,5.,7.,5.,5.,4.,3.,2.,1.,6.];
-    let len = v.len();
-    let mut idx = Vec::from_iter(0..len);
-    let pivot = 5.0;
-    println!("Pivot {}, Set:{}\nIndex {}\n",pivot.yl(),v.gr(),idx.gr());
-    let (ltset,gtset) = partition(&v,&mut idx,&pivot);
-    println!("ltset: {}\ngtset: {}\nequal items: {}\n",     
-        ltset.gr(),
-        gtset.gr(),
-        (idx.len()-ltset.len()-gtset.len()).gr()
-    );
-}
-
-#[test]
-fn minmax() {
-    let v = [5.,9.,8.,7.,6.,5.,5.,5.,5.,5.,4.,3.,2.,1.,6.];
-    let len = v.len();
-    let mut idx = Vec::from_iter(0..len);
-    println!("{}\nParting index {}\n{}", 
-    v.gr(),   
-    minmaxpt(&v,&mut idx,&(0..len)).yl(),
-    idx.gr()
-    );
-}
-*/
-
 #[test]
 fn medf64() {
     set_seeds(7777777777_u64);   // intialise random numbers generator
@@ -71,17 +64,14 @@ fn medf64() {
     println!("{}\nMedian: {}",v.gr(),med.gr());
     println!("MAD:\t{}",v.madf64(med).unwrap().gr());
     println!("Medstats: {}",v.medstatsf64().unwrap());
-    println!("Medinfo: {}",v.medinfof64().unwrap());
 }
-
 
 #[test]
 fn comparison() {
     set_seeds(7777777777_u64);   // intialise random numbers generator
     // Rnum encapsulates the type of the data items
-   benchf64(Rnum::newf64(),4..10000,500,10,&NAMES,&CLOSURESF64); 
+   benchf64(Rnum::newf64(),7..10000,500,5,&NAMES,&CLOSURESF64); 
 }
-
 
 #[test]
 fn errors() { 
@@ -94,9 +84,10 @@ fn errors() {
         
         for _ in 0..n { 
             let v = ranvu8(d).unwrap(); // random vector  
-            // let med = v.median(&mut |t:&u8| *t as f64).expect("even errors test");
-            let (med1,med2) = v.even_strict_median();  
-            error += balance(&v,(med1 as f64 + med2 as f64)/2.,&mut |f| *f as f64);
+            let med = v.median(&mut |t:&u8| *t as f64).expect("even errors test");
+            error += balance(&v,med,&mut |f| *f as f64);
+            // let (med1,med2) = v.even_strict_median();  
+            //error += balance(&v,(med1 as f64 + med2 as f64)/2.,&mut |f| *f as f64);
             // println!("{} balance: {}",med, balance(&v,med) );
         };
         println!("\nEven lengths: {GR}{d}{UN}, repeats: {GR}{n}{UN}, errors: {GR}{error}{UN}"); 
@@ -104,10 +95,10 @@ fn errors() {
         
         for _ in 0..n {
             let v = ranvu8(d+1).unwrap(); // random vector
-            //let med = v.median(&mut |t:&u8| *t as f64).expect("odd errors test");
+            let med = v.median(&mut |t:&u8| *t as f64).expect("odd errors test");
             //let OneTwo::One(med) = partial_median(&v) else { panic!("Odd test failed"); }; 
-            let medix = v.odd_strict_median();
-            error += balance(&v,medix as f64,&mut |f| *f as f64);
+            // let medix = v.odd_strict_median();
+            error += balance(&v,med,&mut |f| *f as f64);
         };
         println!("Odd lengths:  {GR}{}{UN}, repeats: {GR}{}{UN}, errors: {GR}{}{UN}",d+1,n,error);
     }
