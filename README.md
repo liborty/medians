@@ -52,6 +52,8 @@ This is the fastest and simplest implementation for data of type &[f64].
 pub trait Medianf64 {
     /// Finds the median of `&[f64]`, fast
     fn medianf64(self) -> Result<f64, ME>;
+    /// Zero median data produced by subtracting the median.
+    fn zeromedianf64(self) -> Result<Vec<f64>, ME>;
     /// Median correlation = cosine of an angle between two zero median vecs
     fn mediancorrf64(self, v: &[f64]) -> Result<f64, MedError<String>>;
     /// Median of absolute differences (MAD).
@@ -63,6 +65,7 @@ pub trait Medianf64 {
 
 ## Trait Median
 Is the generic version of Medianf64. All the methods take an extra argument, a quantification closure, which evaluates T to f64.
+
 ```rust
 /// Fast 1D generic medians and associated information and tasks
 pub trait Median<T> {
