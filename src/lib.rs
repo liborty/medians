@@ -10,7 +10,7 @@ pub mod error;
 
 pub use crate::{algos::*, error::MedError};
 use indxvec::{
-    printing::{GR, UN},
+    printing::{GR, YL, UN},
     Vecops,
 };
 
@@ -85,7 +85,7 @@ impl std::fmt::Display for MStats {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(
             f,
-            "centre: {GR}{:<10e}{UN}\tdispersion: {GR}{:<10e}{UN}",
+            "{YL}centre: {GR}{:.5}{YL} ± spread: {GR}{:.5}{UN}",
             self.centre, self.dispersion
         )
     }

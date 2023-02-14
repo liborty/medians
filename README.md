@@ -24,7 +24,7 @@ Therefore the naive median can not compete. It has been deleted as of version 2.
 
 ## Fast Algorithms
 
-**`medianf64`** (in trait Medianf64)   
+**`medianf64`** (in trait Medianf64)  
 Iteratively partitions data around a pivot. The arithmetic mean is used as the pivot estimate. Summation is faster to compute than comparisons and memory manipulations of currently popular 'median of medians' methods.
 
 This algorithm has linear complexity and performs very well. However, it does rely on the data being of end type f64.
@@ -41,7 +41,7 @@ When the data items are unquantifiable, we can not simply average the two midpoi
 
 ## `Struct MStats`
 
-Holds the sample parameters: centre (here the median), and the dispersion measure, (here MAD = median of absolute differences from the median). MAD is the most stable measure of data spread. In other contexts this struct can hold the mean and the standard deviation, as computed in crate RStats.
+Holds the sample parameters: centre (here the median), and the spread measure, (here MAD = median of absolute differences from the median). MAD is the most stable measure of data spread. Alternatively, MStats can hold the mean and the standard deviation, as computed in crate RStats.
 
 ## Trait Medianf64
 
@@ -94,6 +94,8 @@ Only non numeric unquantizable types need the slowest, strict medians algorithms
 
 ## Release Notes
 
+**Version 2.1.1** - Simplified/improved the display of struct MStats.
+
 **Version 2.1.0** - Added omitted method `zeromedianf64`. Upped the version.
 
 **Version 2.0.9** - Code simplifications. Removed quartiles and struct Med holding them. Mad, supplied via MStats,can do everything that quartiles did and better.
@@ -113,25 +115,3 @@ However, this is only a constant factor which does not grow with the length of d
 **Version 2.0.1** - Moved all methods directly associated with 1d medians from `rstats` to here. Removed all remaining trait bounds from end data type T. This is one of the benefits of passing explicit `quantify` closures.
 
 **Version 2.0.0** - Better, leaner, faster! Drastically reduced stack usage. Significant speed up using iterative implementation. More concise code. Deleted all old algorithms with inferior performance, such as `naive_median`. Pivot value estimates are now simple arithmetic means. This is not as sophisticated as secant but is fast to evaluate, giving better overall performance. Introduced closure argument `quantify`, allowing dynamic application to any (quantifiable) data types. Yanked versions 1.0.9 & 1.0.10 as returning `Result` was a breaking change which according to `semver` requires major new version, i.e. this one.
-
-**Version 1.0.9** - Added custom MedError and wrapped outputs in Result. Updated `times` dependency.
-
-**Version 1.0.8** - Added fully automated tests by github actions.
-
-**Version 1.0.7** - Updated to `ran 1.0.4`
-
-**Version 1.0.6** - Updated to `times 1.0.4`. Changed the comparison test accordingly.
-
-**Version 1.0.5** - Simplification. Deleted unnecessary w_median. Simplified error test. Updated dev-dependencies `ran 1.0.3` and `times 1.0.3`.
-
-**Version 1.0.4** - Updated dependency `indxvec v.1.4.2`.
-
-**Version 1.0.3** - Added ratio mad/median (standard error) to `struct Med` and improved its Display.
-
-**Version 1.0.2** - Removed unnecessary extra reference from method `median`.
-
-**Version 1.0.1** - Added for convenience `struct MStats` and method `medstats` returning it. It holds here the median and MAD. More generally, any `centre` and `dispersion`. Moved the low level and private functions to module `algos.rs`. Updated `times` dev-dependency.
-
-**Version 1.0.0** -  Updated to the latest `indxvec` dependency, v. 1.2.11. Added `times` crate for timing comparison test.
-
-**Version 0.1.2** - The public methods are now in trait Median.
