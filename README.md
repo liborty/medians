@@ -97,7 +97,7 @@ Only non numeric unquantizable types need the slowest, strict medians algorithms
 
 ## Release Notes
 
-**Version 2.1.2** - Simplified odd/even strict medians. Updated indxvec dependency.
+**Version 2.1.3** - Simplified odd/even strict medians. Updated indxvec dependency. Fixed dependency and tests.
 
 **Version 2.1.1** - Simplified/improved the display of struct MStats.
 

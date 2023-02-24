@@ -53,7 +53,7 @@ fn text() {
         .expect("text(): Median failed\n");
     println!("Median word length in bytes is: {}",median_word.yl());
     println!("Merge sorted by lexicon: {}",v.sortm(true).gr());
-    println!("Even median lexographic words: {}",v.even_strict_median().yl());
+    println!("Even median lexographic words: {}",v.as_slice().even_strict_median().yl());
     }
 
 #[test]
