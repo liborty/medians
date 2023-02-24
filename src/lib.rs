@@ -191,13 +191,13 @@ pub trait Median<T> {
     /// Finds the median of `&[T]`, fast
     fn median(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, ME>;
     /// Finds the median of odd sized nonquantifiable Ord data
-    fn odd_strict_median(self) -> T
+    fn odd_strict_median(&self) -> &T
     where
-        T: Ord + Clone;
+        T: Ord;
     /// Finds the two mid values of even sized nonquantifiable Ord data
-    fn even_strict_median(self) -> (T, T)
+    fn even_strict_median(&self) -> (&T, &T)
     where
-        T: Ord + Clone;
+        T: Ord;
     /// Zero median f64 data produced by finding and subtracting the median.
     fn zeromedian(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Vec<f64>, ME>;
     /// Median correlation = cosine of an angle between two zero median vecs
@@ -218,19 +218,24 @@ impl<T> Median<T> for &[T] {
     }
 
     /// Finds the median of odd sized data, which is not quantifiable
-    fn odd_strict_median(self) -> T
+    fn odd_strict_median(&self) -> &T
     where
-        T: Ord + Clone,
+        T: Ord
     {
-        self.max_1_min_k(self.len() / 2 + 1)
+        let heap = self.smallest_k(self.len() / 2 + 1);
+        heap.peek().unwrap()
     }
 
     /// Finds the two mid values of even sized data, which is not quantifiable
-    fn even_strict_median(self) -> (T, T)
+    fn even_strict_median(&self) -> (&T, &T)
     where
-        T: Ord + Clone,
+        T: Ord
     {
-        self.max_2_min_k(self.len() / 2 + 1)
+        let mut heap = self.smallest_k(self.len() / 2 + 1);
+        // pop() must precede peek(). It rearranges the heap,
+        // so that the next max value is at the root and can be peeked.
+        let maxmax = heap.pop().unwrap();           
+        ((heap.peek().unwrap()),maxmax) 
     }
 
     /// Zero median data produced by subtracting the median.

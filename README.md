@@ -72,11 +72,11 @@ pub trait Median<T> {
     /// Finds the median of `&[T]`, fast
     fn median(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, ME>;
     /// Finds the median of odd sized nonquantifiable Ord data
-    fn odd_strict_median(self) -> T
+    fn odd_strict_median(&self) -> &T
     where
         T: Ord + Clone;
     /// Finds the two mid values of even sized nonquantifiable Ord data
-    fn even_strict_median(self) -> (T, T)
+    fn even_strict_median(&self) -> (&T, &T)
     where
         T: Ord + Clone;
     /// Zero median f64 data produced by finding and subtracting the median.
@@ -96,6 +96,8 @@ Normally, on f64s, it is of course more efficient to use Median64 trait.
 Only non numeric unquantizable types need the slowest, strict medians algorithms.
 
 ## Release Notes
+
+**Version 2.1.2** - Simplified odd/even strict medians. Updated indxvec dependency.
 
 **Version 2.1.1** - Simplified/improved the display of struct MStats.
 
