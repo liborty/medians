@@ -3,7 +3,7 @@
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
 use medians::{Medianf64,Median};
-use medians::algos::{balance,spart,fpart};
+use medians::algos::{balance,spart,fpart,fmin2,fmax2};
 use ran::{*,generators::*};
 use indxvec::{ here, printing::*, Indices, Printing, Vecops, Mutops};
 use ran::*;
@@ -16,6 +16,13 @@ const CLOSURESF64:[fn(&[f64]);2] = [
     |v:&[_]| { v.medianf64().unwrap(); },
     |v:&[_]| { v.median(&mut |&x| x).unwrap(); } ];  // use x.into() when not f64
     // |v:&[_]| { v.odd_strict_median(); } ];
+
+#[test]
+fn minmax2() {
+    let v = [2.,3.,5.,9.,1.,2.,4.,8.,7.,6.,5.,5.,7.,5.,5.,4.,3.,2.,5.,6.];
+    println!("Input set:\t{}",v.gr()); 
+    println!("min2 {}, max2 {}",fmin2(&v,0..v.len()).gr(),fmax2(&v,0..v.len()).gr());    
+}    
 
 #[test]
 fn sparting() {
@@ -80,8 +87,7 @@ fn errors() {
         for d in [10,50,100,1000,10000,100000] {  
         let mut error = 0_i64;
         trait Eq: PartialEq<Self> {}
-        impl Eq for f64 {} 
-        
+        impl Eq for f64 {}         
         for _ in 0..n { 
             let v = ranvu8(d).unwrap(); // random vector  
             let med = v.median(&mut |t:&u8| *t as f64).expect("even errors test");

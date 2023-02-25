@@ -99,7 +99,7 @@ Only non numeric unquantizable types need the slowest, strict medians algorithms
 
 ## Release Notes
 
-**Version 2.1.4** - Fixed a bug in `med_odd` mid subscript calculation which made it one off sometimes. Apologies.
+**Version 2.1.5** - Fixed a bug in `med_odd` that made it one off the centre sometimes. Apologies.
 
 **Version 2.1.3** - Simplified odd/even strict medians. Updated indxvec dependency. Fixed dependency and tests.
 
