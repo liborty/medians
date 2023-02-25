@@ -147,7 +147,7 @@ fn fmax(s: &[f64], rng: Range<usize>) -> f64 {
 /// Median of an odd sized set is the central value.
 pub fn med_odd(set: &mut [f64]) -> f64 {
     let mut rng = 0..set.len();
-    let need = set.len() / 2; // need as subscript
+    let need = (set.len() - 1) / 2; // need as subscript
     loop {
         let pivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / rng.len() as f64;
         let gtsub = spart(set, rng.start, rng.end, pivot);
