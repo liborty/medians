@@ -45,6 +45,7 @@ pub fn spart(s: &mut [f64], mut ltsub: usize, mut gtsub: usize, pivot: f64) -> u
     }
 }
 
+/*
 /// Pivoting: reorders mutable set s within ltsub..gtsub so that all items
 /// less than pivot come first, followed by items greater than or equal to pivot.
 /// Also returns the count of equal items in the second part.
@@ -95,6 +96,7 @@ pub fn fpart(s: &mut [f64], mut ltsub: usize, mut gtsub: usize, pivot: f64) -> (
         };
     }
 }
+*/
 
 fn fmin(s: &[f64], rng: Range<usize>) -> f64 {
     let mut min = s[rng.start];
@@ -109,7 +111,7 @@ fn fmin(s: &[f64], rng: Range<usize>) -> f64 {
 /// two minimum values, in order
 pub fn fmin2(s: &[f64], rng: Range<usize>) -> (f64,f64) {
     let mut min1 = s[rng.start];
-    let mut min2 = min1;
+    let mut min2 = f64::MAX;
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
         if si < min1 {
             min2 = min1;
@@ -124,7 +126,7 @@ pub fn fmin2(s: &[f64], rng: Range<usize>) -> (f64,f64) {
 /// two maximum values, in order
 pub fn fmax2(s: &[f64], rng: Range<usize>) -> (f64,f64) {
     let mut max1 = s[rng.start];
-    let mut max2 = max1;
+    let mut max2 = f64::MIN;
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
         if si > max1 {
             max2 = max1;
@@ -158,20 +160,20 @@ pub fn med_odd(set: &mut [f64]) -> f64 {
         };
         if need < gtsub {
             rng.end = gtsub;
-            // if gtsub == need + 2 {
-            //    return fmax2(set, rng.start..gtsub).0;   
-            // };
-            if gtsub == need + 1 {
+            if need == gtsub-2 {  
+                return fmax2(set, rng.start..gtsub).0;  
+            };
+            if need == gtsub-1 {
                 return fmax(set, rng.start..gtsub);
             };
         } else {
             rng.start = gtsub;
-            if gtsub == need {
+            if need == gtsub {
                 return fmin(set, gtsub..rng.end);
             };
-            // if gtsub + 1 == need {
-            //    return fmin2(set, gtsub..rng.end).1; 
-            // };
+            if need == gtsub+1 { 
+                return fmin2(set, gtsub..rng.end).1; 
+            };
         };
     }
 }

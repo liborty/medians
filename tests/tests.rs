@@ -3,7 +3,7 @@
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
 use medians::{Medianf64,Median};
-use medians::algos::{balance,spart,fpart,fmin2,fmax2};
+use medians::algos::{balance,spart,fmin2,fmax2};
 use ran::{*,generators::*};
 use indxvec::{ here, printing::*, Indices, Printing, Vecops, Mutops};
 use ran::*;
@@ -18,13 +18,6 @@ const CLOSURESF64:[fn(&[f64]);2] = [
     // |v:&[_]| { v.odd_strict_median(); } ];
 
 #[test]
-fn minmax2() {
-    let v = [2.,3.,5.,9.,1.,2.,4.,8.,7.,6.,5.,5.,7.,5.,5.,4.,3.,2.,5.,6.];
-    println!("Input set:\t{}",v.gr()); 
-    println!("min2 {}, max2 {}",fmin2(&v,0..v.len()).gr(),fmax2(&v,0..v.len()).gr());    
-}    
-
-#[test]
 fn sparting() {
     let mut v = [1.,2.,3.,5.,9.,1.,2.,4.,8.,7.,6.,5.,5.,7.,5.,5.,4.,3.,2.,5.,1.,6.];
     let len = v.len();
@@ -35,6 +28,7 @@ fn sparting() {
         pivot.yl(),&v[0..gpart].to_plainstr(),&v[gpart..len].to_plainstr()); 
 }
 
+/*
 #[test]
 fn fparting() {
     let mut v = [1.,2.,3.,5.,9.,1.,2.,4.,8.,7.,6.,5.,5.,7.,5.,5.,4.,3.,2.,5.,1.,6.];
@@ -45,6 +39,7 @@ fn fparting() {
     println!("Pivot {} equals: {}\nltset,geset:\t{GR}[{},{}]{UN}",
         pivot.yl(),eq.yl(),&v[0..gpart].to_plainstr(),&v[gpart..len].to_plainstr()); 
 }
+*/
 
 #[test]
 fn text() {
@@ -65,8 +60,7 @@ fn text() {
 
 #[test]
 fn medf64() {
-    set_seeds(7777777777_u64);   // intialise random numbers generator
-    let v = ranvf64(10).unwrap();
+    let v = [1.,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.,15.,16.,17.];
     let med = v.medianf64().unwrap();
     println!("{}\nMedian: {}",v.gr(),med.gr());
     println!("MAD:\t{}",v.madf64(med).unwrap().gr());
