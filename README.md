@@ -99,6 +99,8 @@ Only non numeric unquantizable types need the slowest, strict medians algorithms
 
 ## Release Notes
 
+**Version 2.1.7** - More pruning and test improvements.
+
 **Version 2.1.6** - Fixed a bug in `fmin2` and `fmax2` that made the median one off the centre sometimes. Apologies. Pruned some code.
 
 **Version 2.1.3** - Simplified odd/even strict medians. Updated indxvec dependency. Fixed dependency and tests.

@@ -3,10 +3,11 @@
 #[cfg(test)]
 use devtimer::{DevTime,SimpleTimer};
 use medians::{Medianf64,Median};
-use medians::algos::{balance,spart,fmin2,fmax2};
+use medians::algos::{balance,spart};
 use ran::{*,generators::*};
 use indxvec::{ here, printing::*, Indices, Printing, Vecops, Mutops};
 use ran::*;
+// use std::io::{stdout,Write};
 use std::convert::From;
 use times::{benchu8,benchu64,benchf64,mutbenchf64};
 
@@ -17,27 +18,26 @@ const CLOSURESF64:[fn(&[f64]);2] = [
     |v:&[_]| { v.median(&mut |&x| x).unwrap(); } ];  // use x.into() when not f64
     // |v:&[_]| { v.odd_strict_median(); } ];
 
-#[test]
-fn sparting() {
-    let mut v = [1.,2.,3.,5.,9.,1.,2.,4.,8.,7.,6.,5.,5.,7.,5.,5.,4.,3.,2.,5.,1.,6.];
-    let len = v.len();
-    let pivot = 6.;
-    println!("Input set:\t{}",v.gr());     
-    let gpart = spart(&mut v,0,len,pivot);
-    println!("Pivot {}\nltset,geset:\t{GR}[{},{}]{UN}",
-        pivot.yl(),&v[0..gpart].to_plainstr(),&v[gpart..len].to_plainstr()); 
-}
-
 /*
 #[test]
-fn fparting() {
-    let mut v = [1.,2.,3.,5.,9.,1.,2.,4.,8.,7.,6.,5.,5.,7.,5.,5.,4.,3.,2.,5.,1.,6.];
-    let len = v.len();
-    let pivot = 6.;
-    println!("Input set:\t{}",v.gr());     
-    let (gpart,eq) = fpart(&mut v,0,len,pivot);
-    println!("Pivot {} equals: {}\nltset,geset:\t{GR}[{},{}]{UN}",
-        pivot.yl(),eq.yl(),&v[0..gpart].to_plainstr(),&v[gpart..len].to_plainstr()); 
+fn sparting() {
+    let len:usize = 20;
+    set_seeds(55557777_u64);   // intialise random numbers generator
+    let mut v = ranvf64_xoshi(20)
+        .expect("Random numbers generation error"); // random vector 
+    println!("Input set:\n{}",v.gr()); 
+    let mut input:String = Default::default();
+    print!("Type your float pivot between 0. and 1.: "); 
+    std::io::stdout().flush().expect("Failed to flush stdout");
+    std::io::stdin()
+        .read_line(&mut input)
+        .expect("Failed to read from stdin");
+    let pivot = input.trim().parse::<f64>()
+        .expect("Failed to parse f64");
+    println!("Pivot {}",pivot.yl()); 
+    let gpart = spart(&mut v,0,len,pivot);
+    println!("[ltset, geset]:\n{GR}[{},\n {}]{UN}",
+        &v[0..gpart].to_plainstr(),&v[gpart..len].to_plainstr()); 
 }
 */
 
@@ -63,7 +63,6 @@ fn medf64() {
     let v = [1.,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.,15.,16.,17.];
     let med = v.medianf64().unwrap();
     println!("{}\nMedian: {}",v.gr(),med.gr());
-    println!("MAD:\t{}",v.madf64(med).unwrap().gr());
     println!("Medstats: {}",v.medstatsf64().unwrap());
 }
 

@@ -43,6 +43,7 @@ pub fn spart(s: &mut [f64], rng: Range<usize>, pivot: f64) -> usize {
     }
 }
 
+
 /// Pivoting: reorders mutable set s within ltsub..gtsub so that all items
 /// less than pivot come first, followed by items greater than or equal to pivot.
 /// Also returns the count of equal items in the second part.

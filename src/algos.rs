@@ -45,59 +45,6 @@ pub fn spart(s: &mut [f64], mut ltsub: usize, mut gtsub: usize, pivot: f64) -> u
     }
 }
 
-/*
-/// Pivoting: reorders mutable set s within ltsub..gtsub so that all items
-/// less than pivot come first, followed by items greater than or equal to pivot.
-/// Also returns the count of equal items in the second part.
-pub fn fpart(s: &mut [f64], mut ltsub: usize, mut gtsub: usize, pivot: f64) -> (usize, usize) {
-    let mut eq = 0_usize;
-    gtsub -= 1;
-    loop {
-        if s[ltsub] < pivot {
-            ltsub += 1;
-            if ltsub > gtsub {
-                return (ltsub, eq);
-            } else {
-                continue;
-            };
-        };
-        if s[ltsub] == pivot {
-            eq += 1;
-            if gtsub == ltsub {
-                return (ltsub, eq);
-            };
-            s.swap(ltsub, gtsub);
-            gtsub -= 1;
-            continue;
-        };
-        'gtloop: loop {
-            if s[gtsub] > pivot {
-                if gtsub == ltsub {
-                    return (ltsub, eq);
-                };
-                gtsub -= 1;
-                continue 'gtloop;
-            };
-            if s[gtsub] == pivot {
-                eq += 1;
-                if gtsub == ltsub {
-                    return (ltsub, eq);
-                };
-                gtsub -= 1;
-                continue 'gtloop;
-            };
-            break 'gtloop;
-        }
-        s.swap(ltsub, gtsub);
-        ltsub += 1;
-        gtsub -= 1;
-        if ltsub > gtsub {
-            return (ltsub, eq);
-        };
-    }
-}
-*/
-
 fn fmin(s: &[f64], rng: Range<usize>) -> f64 {
     let mut min = s[rng.start];
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
@@ -108,8 +55,18 @@ fn fmin(s: &[f64], rng: Range<usize>) -> f64 {
     min
 }
 
+fn fmax(s: &[f64], rng: Range<usize>) -> f64 {
+    let mut max = s[rng.start];
+    for &si in s.iter().take(rng.end).skip(rng.start + 1) {
+        if si > max {
+            max = si;
+        };
+    }
+    max
+}
+
 /// two minimum values, in order
-pub fn fmin2(s: &[f64], rng: Range<usize>) -> (f64, f64) {
+fn fmin2(s: &[f64], rng: Range<usize>) -> (f64, f64) {
     let mut min1 = s[rng.start];
     let mut min2 = f64::MAX;
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
@@ -124,7 +81,7 @@ pub fn fmin2(s: &[f64], rng: Range<usize>) -> (f64, f64) {
 }
 
 /// two maximum values, in order
-pub fn fmax2(s: &[f64], rng: Range<usize>) -> (f64, f64) {
+fn fmax2(s: &[f64], rng: Range<usize>) -> (f64, f64) {
     let mut max1 = s[rng.start];
     let mut max2 = f64::MIN;
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
@@ -136,16 +93,6 @@ pub fn fmax2(s: &[f64], rng: Range<usize>) -> (f64, f64) {
         }
     }
     (max2, max1)
-}
-
-fn fmax(s: &[f64], rng: Range<usize>) -> f64 {
-    let mut max = s[rng.start];
-    for &si in s.iter().take(rng.end).skip(rng.start + 1) {
-        if si > max {
-            max = si;
-        };
-    }
-    max
 }
 
 /// Median of an odd sized set is the central value.
