@@ -10,7 +10,7 @@ pub mod error;
 
 pub use crate::{algos::*, error::MedError};
 use indxvec::{
-    printing::{GR, YL, UN},
+    printing::{GR, UN, YL},
     Vecops,
 };
 
@@ -136,7 +136,6 @@ impl Medianf64 for &[f64] {
         Ok(self.iter().map(|s| s - median).collect())
     }
 
-
     /// We define median based correlation as cosine of an angle between two
     /// zero median vectors (analogously to Pearson's zero mean vectors)
     /// # Example
@@ -201,8 +200,11 @@ pub trait Median<T> {
     /// Zero median f64 data produced by finding and subtracting the median.
     fn zeromedian(self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Vec<f64>, ME>;
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn mediancorr(self, v: &[T], quantify: &mut impl FnMut(&T) -> f64)
-        -> Result<f64, MedError<String>>;
+    fn mediancorr(
+        self,
+        v: &[T],
+        quantify: &mut impl FnMut(&T) -> f64,
+    ) -> Result<f64, MedError<String>>;
     /// Median of absolute differences (MAD).
     fn mad(self, med: f64, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, ME>;
     /// Median and MAD.
@@ -220,7 +222,7 @@ impl<T> Median<T> for &[T] {
     /// Finds the median of odd sized data, which is not quantifiable
     fn odd_strict_median(&self) -> &T
     where
-        T: Ord
+        T: Ord,
     {
         let heap = self.smallest_k(self.len() / 2 + 1);
         heap.peek().unwrap()
@@ -229,13 +231,13 @@ impl<T> Median<T> for &[T] {
     /// Finds the two mid values of even sized data, which is not quantifiable
     fn even_strict_median(&self) -> (&T, &T)
     where
-        T: Ord
+        T: Ord,
     {
         let mut heap = self.smallest_k(self.len() / 2 + 1);
         // pop() must precede peek(). It rearranges the heap,
         // so that the next max value is at the root and can be peeked.
-        let maxmax = heap.pop().unwrap();           
-        ((heap.peek().unwrap()),maxmax) 
+        let maxmax = heap.pop().unwrap();
+        ((heap.peek().unwrap()), maxmax)
     }
 
     /// Zero median data produced by subtracting the median.

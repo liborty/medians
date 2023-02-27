@@ -109,7 +109,7 @@ fn fmin(s: &[f64], rng: Range<usize>) -> f64 {
 }
 
 /// two minimum values, in order
-pub fn fmin2(s: &[f64], rng: Range<usize>) -> (f64,f64) {
+pub fn fmin2(s: &[f64], rng: Range<usize>) -> (f64, f64) {
     let mut min1 = s[rng.start];
     let mut min2 = f64::MAX;
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
@@ -120,11 +120,11 @@ pub fn fmin2(s: &[f64], rng: Range<usize>) -> (f64,f64) {
             min2 = si;
         }
     }
-    (min1,min2)
+    (min1, min2)
 }
 
 /// two maximum values, in order
-pub fn fmax2(s: &[f64], rng: Range<usize>) -> (f64,f64) {
+pub fn fmax2(s: &[f64], rng: Range<usize>) -> (f64, f64) {
     let mut max1 = s[rng.start];
     let mut max2 = f64::MIN;
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
@@ -135,7 +135,7 @@ pub fn fmax2(s: &[f64], rng: Range<usize>) -> (f64,f64) {
             max2 = si;
         }
     }
-    (max2,max1)
+    (max2, max1)
 }
 
 fn fmax(s: &[f64], rng: Range<usize>) -> f64 {
@@ -160,10 +160,10 @@ pub fn med_odd(set: &mut [f64]) -> f64 {
         };
         if need < gtsub {
             rng.end = gtsub;
-            if need == gtsub-2 {  
-                return fmax2(set, rng.start..gtsub).0;  
+            if need == gtsub - 2 {
+                return fmax2(set, rng.start..gtsub).0;
             };
-            if need == gtsub-1 {
+            if need == gtsub - 1 {
                 return fmax(set, rng.start..gtsub);
             };
         } else {
@@ -171,8 +171,8 @@ pub fn med_odd(set: &mut [f64]) -> f64 {
             if need == gtsub {
                 return fmin(set, gtsub..rng.end);
             };
-            if need == gtsub+1 { 
-                return fmin2(set, gtsub..rng.end).1; 
+            if need == gtsub + 1 {
+                return fmin2(set, gtsub..rng.end).1;
             };
         };
     }
@@ -181,27 +181,27 @@ pub fn med_odd(set: &mut [f64]) -> f64 {
 /// Median of an even sized set is half of the sum of the two central values.
 pub fn med_even(set: &mut [f64]) -> f64 {
     let mut rng = 0..set.len();
-    let need = set.len() / 2 - 1; // need as subscript - 1 
+    let need = set.len() / 2 - 1; // need as subscript - 1
     loop {
-        let pivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / rng.len() as f64; 
+        let pivot = set.iter().take(rng.end).skip(rng.start).sum::<f64>() / rng.len() as f64;
         let gtsub = spart(set, rng.start, rng.end, pivot);
         if gtsub == rng.start || gtsub == rng.end {
             return pivot;
         };
         if need < gtsub {
-            if need + 2 == gtsub {
-                let (max1,max2) = fmax2(set, rng.start..gtsub);
-                return (max1+max2)/2.0;
+            if need == gtsub - 2 {
+                let (max1, max2) = fmax2(set, rng.start..gtsub);
+                return (max1 + max2) / 2.;
             };
-            if need + 1 == gtsub {
+            if need == gtsub - 1 {
                 return (fmax(set, rng.start..gtsub) + fmin(set, gtsub..rng.end)) / 2.;
             };
             rng.end = gtsub;
         } else {
             if need == gtsub {
-                let (min1,min2) = fmin2(set, gtsub..rng.end);
-                return (min1+min2)/2.0;
-            }
+                let (min1, min2) = fmin2(set, gtsub..rng.end);
+                return (min1 + min2) / 2.;
+            };
             rng.start = gtsub;
         };
     }
