@@ -1,56 +1,17 @@
 use core::ops::Range;
 
-/// Turn v:&[T] to Vec<Ordered<&T>>
-//pub fn ord_vec<T>(v: &[T]) -> Vec<Ordered<&T>> {
-//    v.iter().map(Ordered).collect::<Vec<Ordered<&T>>>()
-//}
-
-/// Maps general `quantify` closure to self, converting the type T -> U
-pub fn quant_vec<T, U>(v: &[T], quantify: &mut impl FnMut(&T) -> U) -> Vec<U> {
-    v.iter().map(quantify).collect::<Vec<U>>()
-}
-
-/// measure errors in median
-pub fn balance<T>(s: &[T], x: f64, quantify: &mut impl FnMut(&T) -> f64) -> i64 {
-    let mut bal = 0_i64;
-    let mut eq = 0_i64;
-    for si in s {
-        let sif = quantify(si);
-        if sif > x {
-            bal += 1;
-        } else if sif < x {
-            bal -= 1;
-        } else {
-            eq += 1;
-        };
-    }
-    if bal == 0 {
-        return 0;
-    };
-    if bal.abs() <= eq {
-        return 0;
-    };
-    1
-}
-
-/// finds a mid value of some three locations
-pub fn midof3<'a, T>(item1: &'a T, item2: &'a T, item3: &'a T) -> &'a T
-where
-    T: PartialOrd,
+/// finds a mid value of sample of three
+pub fn midof3f64(item1: f64, item2: f64, item3: f64) -> f64
 {
-    //let item1 = &s[sub1];
-    //let item2 = &s[sub2];
-    //let item3 = &s[sub3];
-
-    let (min, max) = if *item1 <= *item2 {
+    let (min, max) = if item1 <= item2 {
         (item1, item2)
     } else {
         (item2, item1)
     };
-    if *item3 <= *min {
+    if item3 <= min {
         return min;
     };
-    if *item3 <= *max {
+    if item3 <= max {
         return item3;
     };
     max
@@ -68,9 +29,7 @@ where
 /// the length of ltset is ltend-mid,  
 /// and the length of the second eqset is rng.end-ltend.
 /// Any of these lengths may be zero.
-pub fn part<T>(s: &mut [&T], rng: &Range<usize>, pivot: &T) -> (usize, usize, usize)
-where
-    T: PartialOrd,
+pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, usize)
 {
     let mut startsub = rng.start;
     let mut gtsub = startsub;
@@ -84,8 +43,8 @@ where
             gtsub += 1;
         }
         if s[gtsub] == pivot {
-            if gtsub > startsub {
-                s.swap(startsub, gtsub);
+            if gtsub > startsub { 
+                s.swap(startsub, gtsub); 
             };
             if gtsub == ltsub {
                 return (1 + startsub, 1 + gtsub, 1 + endsub);
@@ -125,26 +84,24 @@ where
     }
 }
 
-fn min<'a, T>(s: &[&'a T], rng: Range<usize>) -> &'a T
-where
-    T: PartialOrd,
+/// Minimum value within a range in a slice
+pub fn minf64(s: &[f64], rng: Range<usize>) -> f64
 {
-    let mut min = &s[rng.start];
-    for si in s.iter().take(rng.end).skip(rng.start + 1) {
-        if *si < *min {
+    let mut min = s[rng.start];
+    for &si in s.iter().take(rng.end).skip(rng.start + 1) {
+        if si < min {
             min = si;
         };
     }
     min
 }
 
-fn max<'a, T>(s: &[&'a T], rng: Range<usize>) -> &'a T
-where
-    T: PartialOrd,
+/// Maximum value within a range in a slice
+pub fn maxf64(s: &[f64], rng: Range<usize>) -> f64
 {
-    let mut max = &s[rng.start];
-    for si in s.iter().take(rng.end).skip(rng.start + 1) {
-        if *si > *max {
+    let mut max = s[rng.start];
+    for &si in s.iter().take(rng.end).skip(rng.start + 1) {
+        if si > max {
             max = si;
         };
     }
@@ -152,20 +109,18 @@ where
 }
 
 /// two minimum values, in order
-fn min2<'a, T>(s: &[&'a T], rng: Range<usize>) -> (&'a T, &'a T)
-where
-    T: PartialOrd,
+pub fn min2f64(s: &[f64], rng: Range<usize>) -> (f64, f64)
 {
     let (mut min1, mut min2) = if s[rng.start + 1] < s[rng.start] {
-        (&s[rng.start + 1], &s[rng.start])
+        (s[rng.start + 1], s[rng.start])
     } else {
-        (&s[rng.start], &s[rng.start + 1])
+        (s[rng.start], s[rng.start + 1])
     };
-    for si in s.iter().take(rng.end).skip(rng.start + 2) {
-        if *si < *min1 {
+    for &si in s.iter().take(rng.end).skip(rng.start + 2) {
+        if si < min1 {
             min2 = min1;
             min1 = si;
-        } else if *si < *min2 {
+        } else if si < min2 {
             min2 = si;
         }
     }
@@ -173,47 +128,42 @@ where
 }
 
 /// two maximum values, in order
-fn max2<'a, T>(s: &[&'a T], rng: Range<usize>) -> (&'a T, &'a T)
-where
-    T: PartialOrd,
+pub fn max2f64(s: &[f64], rng: Range<usize>) -> (f64, f64)
 {
     let (mut max1, mut max2) = if s[rng.start + 1] > s[rng.start] {
-        (&s[rng.start + 1], &s[rng.start])
+        (s[rng.start + 1], s[rng.start])
     } else {
-        (&s[rng.start], &s[rng.start + 1])
+        (s[rng.start], s[rng.start + 1])
     };
-    for si in s.iter().take(rng.end).skip(rng.start + 2) {
-        if *si > *max1 {
+    for &si in s.iter().take(rng.end).skip(rng.start + 2) {
+        if si > max1 {
             max2 = max1;
             max1 = si;
-        } else if *si > *max2 {
+        } else if si > max2 {
             max2 = si;
         }
     }
     (max2, max1)
 }
 
-/// Median of an odd sized set: the value at midpoint (if sorted)
-pub fn med_odd<T>(set: &[T]) -> &T
-where
-    T: PartialOrd,
+/// Median of slice s of odd length
+pub fn med_oddf64(s: &mut[f64]) -> f64
 {
-    let mut rng = 0..set.len();
-    let mut need = set.len() / 2; // need as subscript
-    let mut s: Vec<&T> = set.iter().collect();
+    let mut rng = 0..s.len();
+    let mut need = s.len() / 2; // need as subscript 
     loop {
-        // Take a sample from start,mid,end of data and use their midpoint as pivot
-        let pivot = midof3(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
-        let (gtsub, ltsub, ltend) = part(&mut s, &rng, pivot);
+        // Take a sample from start,mid,end of data and use their midpoint as pivot 
+        let pivot = midof3f64(s[rng.start],s[(rng.start+rng.end)/2],s[rng.end-1]);
+        let (gtsub, ltsub, ltend) = partf64(s, &rng, pivot);
         // if rng.len() < 6 { return strict_odd(&s[rng.start..rng.end], need-rng.start); };
         if need + ltsub - rng.start < rng.end {
             // jump over geset, which was placed at the beginning
             need += ltsub - rng.start;
             if need + 2 == ltend {
-                return max2(&s, ltsub..ltend).0;
+                return max2f64(s, ltsub..ltend).0;
             };
             if need + 1 == ltend {
-                return max(&s, ltsub..ltend);
+                return maxf64(s, ltsub..ltend);
             };
             // need is in the end equals set
             if need >= ltend {
@@ -230,27 +180,24 @@ where
             return pivot;
         };
         if need == gtsub {
-            return min(&s, gtsub..ltsub);
+            return minf64(s, gtsub..ltsub);
         };
         if need == gtsub + 1 {
-            return min2(&s, gtsub..ltsub).1;
+            return min2f64(s, gtsub..ltsub).1;
         };
         rng.start = gtsub;
         rng.end = ltsub;
     }
 }
 
-/// Median of an even sized set is half of the sum of the two central values.
-pub fn med_even<T>(set: &[T]) -> (&T, &T)
-where
-    T: PartialOrd
+/// Both central values of s of even length
+pub fn med_evenf64(s: &mut[f64]) -> (f64, f64)
 {
-    let mut rng = 0..set.len();
-    let mut need = set.len() / 2 - 1; // need as subscript - 1
-    let mut s: Vec<&T> = set.iter().collect();
+    let mut rng = 0..s.len();
+    let mut need = s.len() / 2 - 1; // need as subscript - 1 
     loop {
-        let pivot = midof3(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
-        let (gtsub, ltsub, ltend) = part(&mut s, &rng, pivot);
+        let pivot = midof3f64(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
+        let (gtsub, ltsub, ltend) = partf64(s, &rng, pivot);
         // print!("{}-{}:{}:{} ", rng.len(), gtsub, ltsub, ltend);
         // if gtsub == rng.start { return strict_even(&s[rng.start..rng.end], need-rng.start); };
         if need + ltsub - rng.start < rng.end {
@@ -258,21 +205,21 @@ where
             need += ltsub - rng.start;
             if need + 2 == ltend {
                 // println!("lt max2");
-                return max2(&s, ltsub..ltend);
+                return max2f64(s, ltsub..ltend);
             };
             // there will always be at least one item equal to pivot and therefore it is the minimum of the ge set
             if need + 1 == ltend {
                 // println!("lt max");
-                return (max(&s, ltsub..ltend), pivot);
+                return (maxf64(s, ltsub..ltend), pivot);
             };
             // need is within the equals sets
             if need >= ltend {
                 if need < rng.end-1+gtsub-rng.start { return (pivot,pivot); }; 
                 if need == rng.end-1+gtsub-rng.start { 
                     if gtsub > rng.start { return (pivot,pivot); }
-                    else { return (pivot,min(&s, gtsub..ltsub)); }
+                    else { return (pivot,minf64(s, gtsub..ltsub)); }
                 }
-            } 
+            }  
             rng.start = ltsub;
             rng.end = ltend;
             // println!("lt {} {}", rng.start, rng.end);
@@ -285,10 +232,10 @@ where
             return (pivot,pivot);
         }; 
         if need+1 == gtsub {
-            return (pivot, min(&s, gtsub..ltsub));
+            return (pivot, minf64(s, gtsub..ltsub));
         };
         if need == gtsub {
-            return min2(&s, gtsub..ltsub);
+            return min2f64(s, gtsub..ltsub);
         };
         rng.start = gtsub;
         rng.end = ltsub;

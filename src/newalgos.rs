@@ -1,96 +1,61 @@
 use core::ops::Range;
 
-/// measure errors in median
-pub fn balance<T>(s: &[T], x: f64, quantify: &mut impl FnMut(&T) -> f64) -> i64 {
-    let mut bal = 0_i64;
-    let mut eq = 0_i64;
-    for si in s {
-        let sif = quantify(si);
-        if sif > x {
-            bal += 1;
-        } else if sif < x {
-            bal -= 1;
-        } else { eq += 1; };
-    }
-    if bal == 0 {
-        return 0;
-    };
-    if bal.abs() <= eq { return 0; };    
-    1
-}
-
-
-/// Simple (partial) pivoting
-/// Reorders mutable set within the given range so that all items
-/// less than or equal to pivot come first, followed by items greater than or equal to pivot.
-pub fn spart(s: &mut [f64], rng: Range<usize>, pivot: f64) -> usize {
-    let mut ltsub = rng.start;
-    let mut gtsub = rng.end - 1;
+/// Fast partial pivoting.
+/// Reorders mutable set within the given range so that all items less than or equal to pivot come first,  
+/// followed by items greater than or equal to pivot.
+pub fn spart<T>(s: &mut [T], mut ltsub: usize, mut gtsub: usize, pivot: &T) -> usize
+where
+    T: PartialOrd,
+{
+    gtsub -= 1;
     loop {
-        while s[ltsub] <= pivot {
+        while s[ltsub] <= *pivot {
             ltsub += 1;
             if ltsub > gtsub {
                 return ltsub;
             };
         }
-        while s[gtsub] >= pivot {
+        while s[gtsub] >= *pivot {
             gtsub -= 1;
             if gtsub <= ltsub {
                 return ltsub;
             };
         }
         s.swap(ltsub, gtsub);
+        ltsub += 1;
+        gtsub -= 1;
+        if gtsub <= ltsub {
+            return ltsub;
+        };
     }
 }
 
-
-/// Pivoting: reorders mutable set s within ltsub..gtsub so that all items
-/// less than pivot come first, followed by items greater than or equal to pivot.
-/// Also returns the count of equal items in the second part.
-pub fn fpart(s: &mut [f64], mut ltsub: usize, mut gtsub: usize, pivot: f64) -> (usize, usize) {
-    let mut eq = 0_usize;
+/// Pivoting: reorders mutable set s within ltsub..gtsub so that all items equal to pivot come first.  
+/// Can be used after `part` on geset for total partition: `[ltset,eqset,gtset]`
+pub fn eqpart<T>(s: &mut [T], mut ltsub: usize, mut gtsub: usize, pivot: &T) -> usize
+where
+    T: PartialOrd,
+{
     gtsub -= 1;
+    assert!(ltsub < gtsub);
     loop {
-        if s[ltsub] < pivot {
+        while s[ltsub] == *pivot {
             ltsub += 1;
             if ltsub > gtsub {
-                return (ltsub, eq);
-            } else {
-                continue;
+                return ltsub;
             };
-        };
-        if s[ltsub] == pivot {
-            eq += 1;
-            if gtsub == ltsub {
-                return (ltsub, eq);
-            };
-            s.swap(ltsub, gtsub);
+        }
+        while s[gtsub] != *pivot {
             gtsub -= 1;
-            continue;
-        };
-        'gtloop: loop {
-            if s[gtsub] > pivot {
-                if gtsub == ltsub {
-                    return (ltsub, eq);
-                };
-                gtsub -= 1;
-                continue 'gtloop;
+            if gtsub == ltsub {
+                return gtsub;
             };
-            if s[gtsub] == pivot {
-                eq += 1;
-                if gtsub == ltsub {
-                    return (ltsub, eq);
-                };
-                gtsub -= 1;
-                continue 'gtloop;
-            };
-            break 'gtloop;
         }
         s.swap(ltsub, gtsub);
         ltsub += 1;
         gtsub -= 1;
-        if ltsub > gtsub {
-            return (ltsub, eq);
+        if ltsub >= gtsub {
+            return ltsub;
         };
     }
 }
@@ -156,13 +121,17 @@ pub fn med_odd(set: &mut [f64]) -> f64 {
     let need = n / 2;
     let mut pivot = set.iter().sum::<f64>() / (n as f64); // initially the mean
     println!();
-    loop { 
-         let (gtsub,eq) = fpart(set, rngstart, rngend, pivot); 
-         print!("{gtsub} ");
-         if gtsub == rngend { return set[rngend-1]; };
-         if gtsub == rngstart { return set[rngstart]; }; 
-         if need < gtsub {  
-            rngend = gtsub;  
+    loop {
+        let (gtsub, eq) = fpart(set, rngstart, rngend, pivot);
+        print!("{gtsub} ");
+        if gtsub == rngend {
+            return set[rngend - 1];
+        };
+        if gtsub == rngstart {
+            return set[rngstart];
+        };
+        if need < gtsub {
+            rngend = gtsub;
             if need + 1 == gtsub {
                 return fmax(set, rngstart..rngend);
             };
@@ -170,19 +139,19 @@ pub fn med_odd(set: &mut [f64]) -> f64 {
             if firsttime {
                 min = fmin(set, rngstart..rngend);
                 firsttime = false;
-            }; 
+            };
         } else {
-            rngstart = gtsub; 
+            rngstart = gtsub;
             if need < gtsub + eq {
-               return pivot;
-            }; // in equal set 
+                return pivot;
+            }; // in equal set
             min = pivot;
             if firsttime {
                 max = fmax(set, rngstart..rngend);
                 firsttime = false;
             };
-        }; 
-        pivot = min + (max - min) * ((need - rngstart) as f64) / ((rngend - rngstart) as f64); 
+        };
+        pivot = min + (max - min) * ((need - rngstart) as f64) / ((rngend - rngstart) as f64);
     }
 }
 
