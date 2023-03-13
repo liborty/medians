@@ -101,7 +101,7 @@ impl std::fmt::Display for MStats {
 
 /// Fast 1D generic medians and associated information and tasks
 pub trait Medianf64 {
-    /// Finds the median of `&[T]`, fast. 
+    /// Finds the median, fast. 
     fn median(self) -> Result<f64, Me>;  
      /// Zero median data produced by finding and subtracting the median. 
     fn zeromedian(self) -> Result<Vec<f64>, Me>;
