@@ -29,7 +29,7 @@ Therefore the naive median can not compete. It has been deleted as of version 2.
 ```rust
 /// Fast 1D generic medians and associated information and tasks
 pub trait Medianf64 {
-    /// Finds the median of `&[T]`, fast. 
+    /// Finds the median, fast. 
     fn median(self) -> Result<f64, Me>;  
      /// Zero median data produced by finding and subtracting the median. 
     fn zeromedian(self) -> Result<Vec<f64>, Me>;
@@ -92,9 +92,9 @@ pub trait Median<T> {
 }
 ```
 
-**`even_strict_median`**
+**`generic_even`**
 
-When the data items are unquantifiable, we can not simply average the two midpoints of even length data, as we did in `median`. So we return them both as a pair tuple, the smaller one first. Otherwise very similar to `odd_strict_median`. However, note that these two methods return results of different types, so the user has to deal with them explicitly, as appropriate.
+When the data items are unquantifiable, we can not simply average the two midpoints of even length data, as we did in `median`. So we return them both as a pair tuple, the smaller one first. Otherwise very similar to `generic_odd`. Note however, that these two methods return results of different types: `(&T,&T)` and `&T` respectively. Therefore the user has to deal with them explicitly, as appropriate.
 
 ## `Struct MStats`
 
