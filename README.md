@@ -18,11 +18,15 @@ We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geome
 
 See [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs) for examples of usage. Their automatically generated output can also be found by clicking the 'test' icon at the top of this document and then examining the latest log.
 
-## Naive Median
+## Algorithms Analysis
 
-Median can be found by sorting the list of data and then picking the midpoint. When using the best known sort algorithm(s), the complexity is `O(nlog(n))`. Faster median algorithms, with complexity `O(n)`, are based on the observation that not all data items need to be fully sorted, only partitioned and counted off.
+Median can be found naively by sorting the list of data and then picking the midpoint. When using the best known sort algorithm(s), the complexity is `O(nlog(n))`. Faster median algorithms, with complexity `O(n)`, are based on the observation that not all data items need to be fully sorted, only partitioned and counted off. Therefore the naive median can not compete. It has been deleted as of version 2.0.0.
 
-Therefore the naive median can not compete. It has been deleted as of version 2.0.0.
+Currently considered to be the 'state of the art' algorithm is Floyd-Rivest (1975) Median of Medians. This divides the data into groups of five items, finds a median of each group and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. This pivot is guaranteed to produce 'pretty good' partitions.
+
+However, the overall objective is not to find the optimal pivot. Rather, the fastest algorithm will be the one capable of eliminating the maximum number of items per unit of time. Therefore the expense of choosing the pivot enters into the equation. It is possible to allow less optimal pivots, as we do, and yet on average achieve more eliminations.
+
+Let our average ratio of items remaining after one partition be RS and Floyd-Rivest be RF. Where `1/2 <= RF <= RS < 1` (RF is more optimal). But suppose that we can do two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). We then get  better performance when: `RS^2 < RF`, which is entirely possible and seems to be confirmed in practice. For example, RF=0.65 (nearly optimal), RS=0.8 (deeply suboptimal), yet `RS^2 < RF`.
 
 ## Trait Medianf64
 
