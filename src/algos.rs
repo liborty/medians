@@ -1,10 +1,5 @@
 use core::ops::Range;
 
-/// Turn v:&[T] to Vec<Ordered<&T>>
-//pub fn ord_vec<T>(v: &[T]) -> Vec<Ordered<&T>> {
-//    v.iter().map(Ordered).collect::<Vec<Ordered<&T>>>()
-//}
-
 /// Maps general `quantify` closure to self, converting the type T -> U
 pub fn quant_vec<T, U>(v: &[T], quantify: &mut impl FnMut(&T) -> U) -> Vec<U> {
     v.iter().map(quantify).collect::<Vec<U>>()
@@ -202,10 +197,17 @@ where
     let mut need = set.len() / 2; // need as subscript
     let mut s: Vec<&T> = set.iter().collect();
     loop {
-        // Take a sample from start,mid,end of data and use their midpoint as pivot
-        let pivot = midof3(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
+        // Take a sample from start,mid,end of data and use their midpoint as a pivot 
+        let pivot = midof3(s[rng.start],s[(rng.start+rng.end)/2],s[rng.end-1]);
         let (gtsub, ltsub, ltend) = part(&mut s, &rng, pivot);
-        // if rng.len() < 6 { return strict_odd(&s[rng.start..rng.end], need-rng.start); };
+        // somewhere within ltset, iterate on it
+        if need + ltsub - rng.start + 2 < ltend {
+            need += ltsub - rng.start;
+            rng.start = ltsub;
+            rng.end = ltend;
+            continue;
+        }
+        // when need is within reach of the end of ltset, we have a solution: 
         if need + ltsub - rng.start < rng.end {
             // jump over geset, which was placed at the beginning
             need += ltsub - rng.start;
@@ -215,83 +217,84 @@ where
             if need + 1 == ltend {
                 return max(&s, ltsub..ltend);
             };
-            // need is in the end equals set
-            if need >= ltend {
-                return pivot;
-            };
-            rng.start = ltsub;
-            rng.end = ltend;
-            continue;
+            // else need is in the end equals set (need >= ltend) 
+            return pivot; 
         };
-        // geset, is at the beginning, so reduce need by leset
+        // geset was placed at the beginning, so reduce need by leset
         need -= rng.end - ltsub;
-        // need is in the first equals set
+        // somewhere within gtset, iterate on it
+        if need > gtsub+1 {
+            rng.start = gtsub;
+            rng.end = ltsub;
+            continue;
+        }
+        // here need is within reach of the beginning of the ge set, we have a solution:
+        // does it fall within the first equals set?
         if need < gtsub {
             return pivot;
         };
         if need == gtsub {
             return min(&s, gtsub..ltsub);
         };
-        if need == gtsub + 1 {
-            return min2(&s, gtsub..ltsub).1;
-        };
-        rng.start = gtsub;
-        rng.end = ltsub;
+        // else need == gtsub + 1 
+        return min2(&s, gtsub..ltsub).1;
     }
 }
 
 /// Median of an even sized set is half of the sum of the two central values.
-pub fn med_even<T>(set: &[T]) -> (&T, &T)
-where
-    T: PartialOrd
-{
+pub fn med_even<T:PartialOrd>(set: &[T]) -> (&T, &T) {
     let mut rng = 0..set.len();
     let mut need = set.len() / 2 - 1; // need as subscript - 1
     let mut s: Vec<&T> = set.iter().collect();
     loop {
         let pivot = midof3(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
-        let (gtsub, ltsub, ltend) = part(&mut s, &rng, pivot);
-        // print!("{}-{}:{}:{} ", rng.len(), gtsub, ltsub, ltend);
-        // if gtsub == rng.start { return strict_even(&s[rng.start..rng.end], need-rng.start); };
+        let (gtsub, ltsub, ltend) = part(&mut s, &rng, pivot); 
+        // need falls somewhere within ltset, iterate on it
+        if need + ltsub - rng.start + 2 < ltend {
+                need += ltsub - rng.start;
+                rng.start = ltsub;
+                rng.end = ltend;
+                continue;
+        };
+        // if need is within reach of the end of ltset, we have a solution: 
         if need + ltsub - rng.start < rng.end {
             // jump over geset, which was placed at the beginning
             need += ltsub - rng.start;
             if need + 2 == ltend {
-                // println!("lt max2");
                 return max2(&s, ltsub..ltend);
             };
             // there will always be at least one item equal to pivot and therefore it is the minimum of the ge set
             if need + 1 == ltend {
-                // println!("lt max");
                 return (max(&s, ltsub..ltend), pivot);
             };
-            // need is within the equals sets
-            if need >= ltend {
-                if need < rng.end-1+gtsub-rng.start { return (pivot,pivot); }; 
-                if need == rng.end-1+gtsub-rng.start { 
-                    if gtsub > rng.start { return (pivot,pivot); }
-                    else { return (pivot,min(&s, gtsub..ltsub)); }
-                }
-            } 
-            rng.start = ltsub;
-            rng.end = ltend;
-            // println!("lt {} {}", rng.start, rng.end);
-            continue; 
+            // need is within the equals sets (need >= ltend)
+            let eqend = rng.end-1+gtsub-rng.start;
+            if need < eqend { return (pivot,pivot); }; 
+            if need == eqend { 
+                if gtsub > rng.start { return (pivot,pivot); }
+                else { return (pivot,min(&s, gtsub..ltsub)); }
+            };
         };
-        // geset, is at the beginning, so reduce need by leset
+        // geset was placed at the beginning, so reduce need by leset
         need -= rng.end - ltsub;
-        // need is in the first equals set
+        // somewhere within gtset, iterate on it
+        if need+1 > gtsub {
+            rng.start = gtsub;
+            rng.end = ltsub;
+            continue;
+        }; 
+        // need is within reach of the beginning of the ge set, we have a solution:
+        // is need in the first equals set?
         if need+1 < gtsub {
             return (pivot,pivot);
         }; 
+        // last of the first equals set
         if need+1 == gtsub {
             return (pivot, min(&s, gtsub..ltsub));
         };
+        // first of the gtset
         if need == gtsub {
             return min2(&s, gtsub..ltsub);
-        };
-        rng.start = gtsub;
-        rng.end = ltsub;
-        // println!("gt {} {}", rng.start, rng.end);
+        }; 
     }
 }

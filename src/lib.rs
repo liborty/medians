@@ -13,72 +13,11 @@ pub mod error;
 
 //use core::cmp::{Ordering, Ordering::*};
 //use core::ops::{Deref,DerefMut};
-use core::fmt::Debug;
 use crate::{algos::*, algosf64::{med_oddf64,med_evenf64}, error::{MedError,merror}};
 use indxvec::{ printing::{GR, UN, YL}};
 
 /// Shorthand type for medians errors with message payload specialized to String
 pub type Me = MedError<String>;
-
-/// The following defines Ord<T> struct which is a T that implements Ord.
-/// This boilerplate makes any wrapped T:PartialOrd, such as f64, into Ord
-#[derive(Clone,Copy,Debug)]
-
-/*
-pub struct Ordered<T>(pub T);
-
-impl<T: std::fmt::Display > std::fmt::Display for Ordered<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let Ordered(x) = self;
-        write!(f, "{x}" )
-    }
-}
-
-impl<T> Deref for Ordered<T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for Ordered<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<T:PartialOrd> PartialEq for Ordered<T> {
-    fn eq(&self, other: &Self) -> bool {
-        if **self < **other { return false; };
-        if **self > **other { return false; };
-        true
-    }
-}
-
-impl<T:PartialOrd> PartialOrd for Ordered<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        if **self < **other { return Some(Less) };
-        if **self > **other { return Some(Greater) };
-        None
-    }
-}
-
-impl<T:PartialOrd> Ord for Ordered<T> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        if **self < **other { return Less };
-        if **self > **other { return Greater };
-        Equal
-    }
-}
-
-impl<T:PartialOrd> Eq for Ordered<T> {}
-
-impl<T> From<T> for Ordered<T> {
-    fn from(f:T) -> Self {
-        Ordered(f)
-    }
-}
-*/
 
 /// Holds measures of central tendency and spread.
 /// Usually some kind of mean and its associated standard deviation, or median and its MAD
@@ -99,7 +38,7 @@ impl std::fmt::Display for MStats {
     }
 }
 
-/// Fast 1D generic medians and associated information and tasks
+/// Fast 1D f64 medians and associated information and tasks
 pub trait Medianf64 {
     /// Finds the median, fast. 
     fn median(self) -> Result<f64, Me>;  
@@ -113,7 +52,7 @@ pub trait Medianf64 {
     fn medstats(self) -> Result<MStats, Me>;
 }
 impl Medianf64 for &[f64] {
-    /// Returns single f64 number even for even medians
+    /// Returns single f64 number even for even medians. Non destructive.
     fn median(self) -> Result<f64, Me> {
         let n = self.len();
         match n {
@@ -123,8 +62,10 @@ impl Medianf64 for &[f64] {
             1 => return Ok(self[0]),
             2 => return Ok((self[0] + self[1]) / 2.0),
             _ => ()
-        };  
-        let mut s = self.to_owned(); // quant_vec(self,quantify);
+        }; 
+        // we need &mut data for memory efficiency
+        // and to preserve user's data order
+        let mut s = self.to_owned(); 
         if (n & 1) == 1 {
             Ok(med_oddf64(&mut s)) 
         } else { 
@@ -155,9 +96,9 @@ impl Medianf64 for &[f64] {
         let sxy: f64 = self
             .iter()
             .zip(v)
-            .map(|(&xt, yt)| {
+            .map(|(&xt, &yt)| {
                 let x = xt - smedian;
-                let y = *yt - vmedian;
+                let y = yt - vmedian;
                 sx2 += x * x;
                 sy2 += y * y;
                 x * y
@@ -198,10 +139,6 @@ pub trait Median<T> {
     fn generic_odd(&self) -> Result<&T, Me>;
     /// Even median for any PartialOrd type T 
     fn generic_even(&self) -> Result<(&T,&T), Me>;
-    /// Finds the item at sort index k. For median, use k = self.len()/2 
-    // fn strict_odd(&self, k:usize) -> Result<&T,Me>;
-    /// Finds the two items from sort index k. For both even medians, use k = self.len()/2
-    // fn strict_even(&self, k:usize) -> Result<(&T, &T),Me>;
     /// Zero median data produced by finding and subtracting the median. 
     fn zeromedian(&self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Vec<f64>, Me>;
     /// Median correlation = cosine of an angle between two zero median vecs
@@ -271,30 +208,7 @@ where T:PartialOrd
                 Err(merror("size",format!("generic_even: odd length data {n}"))) 
             } 
         }    
-/*
-    /// Finds the item at sort index k using the heap method
-    /// To find the median, use k = self.len()/2
-    fn strict_odd(&self, k:usize) -> Result<&T,Me>
-{
-    let os = ord_vec(self);
-    let s = os.as_slice();
-    if let Some(&m) = s.smallest_k(k+1).peek() { Ok(m) }
-        else { Err(merror("other","strict_odd: failed to peek smallest_k heap")) }
-}    
-    /// Finds the two items from sort index k, using the heap method.  
-    /// To find both even medians, use k = self.len()/2
-    fn strict_even(&self, k:usize) -> Result<(&T, &T),Me>
-{
-    let os = ord_vec(self);
-    let s = os.as_slice();
-        let mut heap = s.smallest_k(k+1); 
-        let Some(m1) = heap.pop() else { 
-            return Err(merror("other","strict_even: failed to pop smallest_k heap")); };
-        let Some(&m2) = heap.peek() else { 
-            return Err(merror("other","strict_even: failed to peek smallest_k heap")); };
-    Ok((m2,m1))
-}
-*/
+
     /// Zero median data produced by subtracting the median.
     /// Analogous to zero mean data when subtracting the mean.
     fn zeromedian(&self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Vec<f64>, Me>     

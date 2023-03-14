@@ -55,7 +55,7 @@ Is the general version of `Medianf64`. Most methods take an extra argument, a qu
 Five of the methods have the same names and perform the same roles as those in trait `Medianf64` above, except for the extra cost of the quantification conversions, which extend their applicability to all 'quantifiable' generic types T. 
 Perhaps keeping their different names may have been simpler but the auto referencing is more automated.
 
- The `quantify` closures allow not just standard `as` and `into()` conversions but also different competing ways of quantifying more complex types. 
+ The `quantify` closures allow not just standard `as` and `into()` conversions but also different competing ways of quantifying more complex types.
 
 For some types even the quantification is not possible. For those there are methods `generic_odd` and `generic_even`, which return references to the actual central item(s) but otherwise use much the same code. They are particularly suited to large types which we might not wish to move or clone. They incur only the additional cost of the extra layer of referencing.
 
@@ -73,10 +73,6 @@ pub trait Median<T> {
     fn generic_odd(&self) -> Result<&T, Me>;
     /// Even median for any PartialOrd type T 
     fn generic_even(&self) -> Result<(&T,&T), Me>;
-    /// Finds the item at sort index k. For median, use k = self.len()/2 
-    // fn strict_odd(&self, k:usize) -> Result<&T,Me>;
-    /// Finds the two items from sort index k. For both even medians, use k = self.len()/2
-    // fn strict_even(&self, k:usize) -> Result<(&T, &T),Me>;
     /// Zero median data produced by finding and subtracting the median. 
     fn zeromedian(&self, quantify: &mut impl FnMut(&T) -> f64) 
         -> Result<Vec<f64>, Me>;
@@ -101,6 +97,8 @@ When the data items are unquantifiable, we can not simply average the two midpoi
 Holds the sample parameters: centre (here the median), and the spread measure, (here MAD = median of absolute differences from the median). MAD is the most stable measure of data spread. Alternatively, MStats can hold the mean and the standard deviation, as computed in crate RStats.
 
 ## Release Notes
+
+**Version 2.2.1** - Some code pruning and streamlining. No change in functionality.
 
 **Version 2.2.0** - Major new version with much improved speed and generality and some breaking changes (renaming).
 

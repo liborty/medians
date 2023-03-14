@@ -1,4 +1,91 @@
 use core::ops::Range;
+use core::fmt::Debug;
+
+/// The following defines Ord<T> struct which is a T that implements Ord.
+/// This boilerplate makes any wrapped T:PartialOrd, such as f64, into Ord
+#[derive(Clone,Copy,Debug)]
+
+pub struct Ordered<T>(pub T);
+
+impl<T: std::fmt::Display > std::fmt::Display for Ordered<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let Ordered(x) = self;
+        write!(f, "{x}" )
+    }
+}
+
+impl<T> Deref for Ordered<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Ordered<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<T:PartialOrd> PartialEq for Ordered<T> {
+    fn eq(&self, other: &Self) -> bool {
+        if **self < **other { return false; };
+        if **self > **other { return false; };
+        true
+    }
+}
+
+impl<T:PartialOrd> PartialOrd for Ordered<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if **self < **other { return Some(Less) };
+        if **self > **other { return Some(Greater) };
+        None
+    }
+}
+
+impl<T:PartialOrd> Ord for Ordered<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if **self < **other { return Less };
+        if **self > **other { return Greater };
+        Equal
+    }
+}
+
+impl<T:PartialOrd> Eq for Ordered<T> {}
+
+impl<T> From<T> for Ordered<T> {
+    fn from(f:T) -> Self {
+        Ordered(f)
+    }
+}
+
+/// Turn v:&[T] to Vec<Ordered<&T>>
+pub fn ord_vec<T>(v: &[T]) -> Vec<Ordered<&T>> {
+    v.iter().map(Ordered).collect::<Vec<Ordered<&T>>>()
+}
+
+/// Finds the item at sort index k using the heap method
+/// To find the median, use k = self.len()/2
+fn strict_odd(&self, k:usize) -> Result<&T,Me>
+{
+    let os = ord_vec(self);
+    let s = os.as_slice();
+    if let Some(&m) = s.smallest_k(k+1).peek() { Ok(m) }
+        else { Err(merror("other","strict_odd: failed to peek smallest_k heap")) }
+}    
+/// Finds the two items from sort index k, using the heap method.  
+/// To find both even medians, use k = self.len()/2
+fn strict_even(&self, k:usize) -> Result<(&T, &T),Me>
+{
+    let os = ord_vec(self);
+    let s = os.as_slice();
+        let mut heap = s.smallest_k(k+1); 
+        let Some(m1) = heap.pop() else { 
+            return Err(merror("other","strict_even: failed to pop smallest_k heap")); };
+        let Some(&m2) = heap.peek() else { 
+            return Err(merror("other","strict_even: failed to peek smallest_k heap")); };
+    Ok((m2,m1))
+}
 
 /// Fast partial pivoting.
 /// Reorders mutable set within the given range so that all items less than or equal to pivot come first,  

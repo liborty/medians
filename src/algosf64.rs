@@ -1,8 +1,7 @@
 use core::ops::Range;
 
 /// finds a mid value of sample of three
-pub fn midof3f64(item1: f64, item2: f64, item3: f64) -> f64
-{
+pub fn midof3f64(item1: f64, item2: f64, item3: f64) -> f64 {
     let (min, max) = if item1 <= item2 {
         (item1, item2)
     } else {
@@ -29,8 +28,7 @@ pub fn midof3f64(item1: f64, item2: f64, item3: f64) -> f64
 /// the length of ltset is ltend-mid,  
 /// and the length of the second eqset is rng.end-ltend.
 /// Any of these lengths may be zero.
-pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, usize)
-{
+pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, usize) {
     let mut startsub = rng.start;
     let mut gtsub = startsub;
     let mut ltsub = rng.end - 1;
@@ -43,8 +41,8 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, 
             gtsub += 1;
         }
         if s[gtsub] == pivot {
-            if gtsub > startsub { 
-                s.swap(startsub, gtsub); 
+            if gtsub > startsub {
+                s.swap(startsub, gtsub);
             };
             if gtsub == ltsub {
                 return (1 + startsub, 1 + gtsub, 1 + endsub);
@@ -85,8 +83,7 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, 
 }
 
 /// Minimum value within a range in a slice
-pub fn minf64(s: &[f64], rng: Range<usize>) -> f64
-{
+pub fn minf64(s: &[f64], rng: Range<usize>) -> f64 {
     let mut min = s[rng.start];
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
         if si < min {
@@ -97,8 +94,7 @@ pub fn minf64(s: &[f64], rng: Range<usize>) -> f64
 }
 
 /// Maximum value within a range in a slice
-pub fn maxf64(s: &[f64], rng: Range<usize>) -> f64
-{
+pub fn maxf64(s: &[f64], rng: Range<usize>) -> f64 {
     let mut max = s[rng.start];
     for &si in s.iter().take(rng.end).skip(rng.start + 1) {
         if si > max {
@@ -109,8 +105,7 @@ pub fn maxf64(s: &[f64], rng: Range<usize>) -> f64
 }
 
 /// two minimum values, in order
-pub fn min2f64(s: &[f64], rng: Range<usize>) -> (f64, f64)
-{
+pub fn min2f64(s: &[f64], rng: Range<usize>) -> (f64, f64) {
     let (mut min1, mut min2) = if s[rng.start + 1] < s[rng.start] {
         (s[rng.start + 1], s[rng.start])
     } else {
@@ -128,8 +123,7 @@ pub fn min2f64(s: &[f64], rng: Range<usize>) -> (f64, f64)
 }
 
 /// two maximum values, in order
-pub fn max2f64(s: &[f64], rng: Range<usize>) -> (f64, f64)
-{
+pub fn max2f64(s: &[f64], rng: Range<usize>) -> (f64, f64) {
     let (mut max1, mut max2) = if s[rng.start + 1] > s[rng.start] {
         (s[rng.start + 1], s[rng.start])
     } else {
@@ -147,15 +141,21 @@ pub fn max2f64(s: &[f64], rng: Range<usize>) -> (f64, f64)
 }
 
 /// Median of slice s of odd length
-pub fn med_oddf64(s: &mut[f64]) -> f64
-{
+pub fn med_oddf64(s: &mut [f64]) -> f64 {
     let mut rng = 0..s.len();
-    let mut need = s.len() / 2; // need as subscript 
+    let mut need = s.len() / 2; // need as subscript
     loop {
-        // Take a sample from start,mid,end of data and use their midpoint as pivot 
-        let pivot = midof3f64(s[rng.start],s[(rng.start+rng.end)/2],s[rng.end-1]);
+        // Take a sample from start,mid,end of data and use their midpoint as a pivot
+        let pivot = midof3f64(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
         let (gtsub, ltsub, ltend) = partf64(s, &rng, pivot);
-        // if rng.len() < 6 { return strict_odd(&s[rng.start..rng.end], need-rng.start); };
+        // somewhere within ltset, iterate on it
+        if need + ltsub - rng.start + 2 < ltend {
+            need += ltsub - rng.start;
+            rng.start = ltsub;
+            rng.end = ltend;
+            continue;
+        }
+        // need is within reach of the end of ltset, we have a solution:
         if need + ltsub - rng.start < rng.end {
             // jump over geset, which was placed at the beginning
             need += ltsub - rng.start;
@@ -165,80 +165,88 @@ pub fn med_oddf64(s: &mut[f64]) -> f64
             if need + 1 == ltend {
                 return maxf64(s, ltsub..ltend);
             };
-            // need is in the end equals set
-            if need >= ltend {
-                return pivot;
-            };
-            rng.start = ltsub;
-            rng.end = ltend;
-            continue;
+            // else need is in the end equals set (need >= ltend)
+            return pivot;
         };
-        // geset, is at the beginning, so reduce need by leset
+        // geset was placed at the beginning, so reduce need by leset
         need -= rng.end - ltsub;
-        // need is in the first equals set
+        // somewhere within gtset, iterate on it
+        if need > gtsub + 1 {
+            rng.start = gtsub;
+            rng.end = ltsub;
+            continue;
+        }
+        // need is within reach of the beginning of the ge set, we have a solution:
+        // does it fall within the first equals set?
         if need < gtsub {
             return pivot;
         };
         if need == gtsub {
             return minf64(s, gtsub..ltsub);
         };
-        if need == gtsub + 1 {
-            return min2f64(s, gtsub..ltsub).1;
-        };
-        rng.start = gtsub;
-        rng.end = ltsub;
+        // else need == gtsub + 1
+        return min2f64(s, gtsub..ltsub).1;
     }
 }
 
 /// Both central values of s of even length
-pub fn med_evenf64(s: &mut[f64]) -> (f64, f64)
-{
+pub fn med_evenf64(s: &mut [f64]) -> (f64, f64) {
     let mut rng = 0..s.len();
-    let mut need = s.len() / 2 - 1; // need as subscript - 1 
+    let mut need = s.len() / 2 - 1; // need as subscript - 1
     loop {
         let pivot = midof3f64(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
         let (gtsub, ltsub, ltend) = partf64(s, &rng, pivot);
-        // print!("{}-{}:{}:{} ", rng.len(), gtsub, ltsub, ltend);
-        // if gtsub == rng.start { return strict_even(&s[rng.start..rng.end], need-rng.start); };
+        // somewhere within ltset, iterate on it
+        if need + ltsub - rng.start + 2 < ltend {
+            need += ltsub - rng.start;
+            rng.start = ltsub;
+            rng.end = ltend;
+            continue;
+        };
+        // if need is within reach of the end of ltset, we have a solution:
         if need + ltsub - rng.start < rng.end {
             // jump over geset, which was placed at the beginning
             need += ltsub - rng.start;
             if need + 2 == ltend {
-                // println!("lt max2");
                 return max2f64(s, ltsub..ltend);
             };
             // there will always be at least one item equal to pivot and therefore it is the minimum of the ge set
             if need + 1 == ltend {
-                // println!("lt max");
                 return (maxf64(s, ltsub..ltend), pivot);
             };
-            // need is within the equals sets
-            if need >= ltend {
-                if need < rng.end-1+gtsub-rng.start { return (pivot,pivot); }; 
-                if need == rng.end-1+gtsub-rng.start { 
-                    if gtsub > rng.start { return (pivot,pivot); }
-                    else { return (pivot,minf64(s, gtsub..ltsub)); }
+            // need is within the equals sets (need >= ltend)
+            let eqend = rng.end - 1 + gtsub - rng.start;
+            if need < eqend {
+                return (pivot, pivot);
+            };
+            if need == eqend {
+                if gtsub > rng.start {
+                    return (pivot, pivot);
+                } else {
+                    return (pivot, minf64(s, gtsub..ltsub));
                 }
-            }  
-            rng.start = ltsub;
-            rng.end = ltend;
-            // println!("lt {} {}", rng.start, rng.end);
-            continue; 
+            };
         };
-        // geset, is at the beginning, so reduce need by leset
+        // geset was placed at the beginning, so reduce need by leset
         need -= rng.end - ltsub;
-        // need is in the first equals set
+        // somewhere within gtset, iterate on it
+        if need+1 > gtsub {
+            rng.start = gtsub;
+            rng.end = ltsub;
+            continue;
+        };
+        // need is within reach of the beginning of the ge set, we have a solution:
+        // is need in the first equals set?
         if need+1 < gtsub {
-            return (pivot,pivot);
-        }; 
+            return (pivot, pivot);
+        };
+        // last of the first equals set
         if need+1 == gtsub {
             return (pivot, minf64(s, gtsub..ltsub));
         };
+        // first of the gtset
         if need == gtsub {
             return min2f64(s, gtsub..ltsub);
         };
-        rng.start = gtsub;
-        rng.end = ltsub;
-        // println!("gt {} {}", rng.start, rng.end);
     }
 }
