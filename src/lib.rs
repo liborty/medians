@@ -42,7 +42,7 @@ impl std::fmt::Display for MStats {
 pub trait Medianf64 {
     /// Finds the median, fast. 
     fn median(self) -> Result<f64, Me>;  
-     /// Zero median data produced by finding and subtracting the median. 
+    /// Zero median data produced by finding and subtracting the median. 
     fn zeromedian(self) -> Result<Vec<f64>, Me>;
     /// Median correlation = cosine of an angle between two zero median vecs
     fn mediancorr(self,v: &[f64]) -> Result<f64, Me>;
