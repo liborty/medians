@@ -31,7 +31,7 @@ Let our average ratio of items remaining after one partition be RS and Floyd-Riv
 ## Trait Medianf64
 
 ```rust
-/// Fast 1D generic medians and associated information and tasks
+/// Fast 1D f64 medians and associated tasks
 pub trait Medianf64 {
     /// Finds the median, fast. 
     fn median(self) -> Result<f64, Me>;  
@@ -68,7 +68,9 @@ For some types even the quantification is not possible. For those there are meth
 /// Using auto referencing to disambiguate conflicts 
 /// with five more specific Medianf64 methods with the same names.  
 /// To invoke specifically these generic versions, add a reference:  
-/// `(&v[..]).method` or `v.as_slice().method`
+/// `(&v[..]).method` or `v.as_slice().method`.  
+/// Apart from `generic_odd` and `generic_even`, a `quantify` closure
+/// also has to be added as an argument.
 pub trait Median<T> {
     /// Finds the median of `&[T]`, fast. 
     fn median(&self, quantify: &mut impl FnMut(&T) -> f64) 
@@ -102,6 +104,8 @@ Holds the sample parameters: centre (here the median), and the spread measure, (
 
 ## Release Notes
 
+**Version 2.2.2** - Corrected some comment and readme typos. No change in functionality.
+
 **Version 2.2.1** - Some code pruning and streamlining. No change in functionality.
 
 **Version 2.2.0** - Major new version with much improved speed and generality and some breaking changes (renaming).
@@ -115,21 +119,3 @@ Holds the sample parameters: centre (here the median), and the spread measure, (
 **Version 2.1.1** - Simplified/improved the display of struct MStats.
 
 **Version 2.1.0** - Added omitted method `zeromedianf64`. Upped the version.
-
-**Version 2.0.9** - Code simplifications. Removed quartiles and struct Med holding them. Mad, supplied via MStats,can do everything that quartiles did and better.
-
-**Version 2.0.8** - Added another test. Fixed a typo bug in `Median` and `Medianf64`.
-
-**Version 2.0.7** - Gained some more speed by a new invention: 'secant mean pivoting'. Made `Medianf64` methods to be non-destructive, at the cost of cloning the data.
-
-**Version 2.0.6** - Added trait Medianf64 for simplicity and speed over f64 data.
-
-**Version 2.0.3** - Added methods `odd_strict_median` and `even_strict_median` to trait `Median<T>`.
-These methods apply in classical situations where T is unquantifiable, only Ord(ered). They are about 1.75 times slower.
-However, this is only a constant factor which does not grow with the length of data.
-
-**Version 2.0.2** - Removed trait parameter Q to ease external usage.
-
-**Version 2.0.1** - Moved all methods directly associated with 1d medians from `rstats` to here. Removed all remaining trait bounds from end data type T. This is one of the benefits of passing explicit `quantify` closures.
-
-**Version 2.0.0** - Better, leaner, faster! Drastically reduced stack usage. Significant speed up using iterative implementation. More concise code. Deleted all old algorithms with inferior performance, such as `naive_median`. Pivot value estimates are now simple arithmetic means. This is not as sophisticated as secant but is fast to evaluate, giving better overall performance. Introduced closure argument `quantify`, allowing dynamic application to any (quantifiable) data types. Yanked versions 1.0.9 & 1.0.10 as returning `Result` was a breaking change which according to `semver` requires major new version, i.e. this one.
