@@ -33,10 +33,6 @@ pub fn midof3<'a, T>(item1: &'a T, item2: &'a T, item3: &'a T) -> &'a T
 where
     T: PartialOrd,
 {
-    //let item1 = &s[sub1];
-    //let item2 = &s[sub2];
-    //let item3 = &s[sub3];
-
     let (min, max) = if *item1 <= *item2 {
         (item1, item2)
     } else {
@@ -51,18 +47,13 @@ where
     max
 }
 
-/// Partitioning by pivot value: reorders mutable set s within rng and divides it into four subsets.  
-/// All items greater than or equal to pivot come before `mid`, followed by all items less than or equal to pivot.
-/// Additionally, items equal to pivot are swapped either before gt set or after lt set (their ascending order positions).
-/// Which get swapped to the beginning and which to the end depends on where they happen to be encountered.
-/// The processing is done in-place, in a single pass, with minimal comparisons.  
-/// Returns a triple of subscripts to s: (gtstart, mid, ltend).
-/// mid marks the end of the gtset (gtend) and the beginning of the ltset (ltstart).  
-/// The length of the first eqset is gtstart-rng.start,  
-/// the length of gtset is mid-gtstart,  
-/// the length of ltset is ltend-mid,  
-/// and the length of the second eqset is rng.end-ltend.
-/// Any of these lengths may be zero.
+/// Partitions mutable set s within rng by pivot value. 
+/// The reordering is done in a single pass, with minimal comparisons.   
+/// Returns a triple of subscripts to new s: (gtstart, mid, ltend).  
+/// Items equal to pivot are either before gtstart or starting from ltend.  
+/// Items greater than pivot are in range (gtstart,mid) 
+/// Items lesser than pivot are in range (mid,ltend). 
+/// Any of these four resulting sub-slices may be empty.
 pub fn part<T>(s: &mut [&T], rng: &Range<usize>, pivot: &T) -> (usize, usize, usize)
 where
     T: PartialOrd,
