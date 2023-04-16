@@ -3,7 +3,8 @@
 #[cfg(test)]
 use devtimer::{DevTime, SimpleTimer};
 use indxvec::{here, printing::*, Indices, Mutops, Printing, Vecops};
-use medians::algos::{balance, med_odd, midof3, part};
+use medians::algos::{balance, med_odd, midof3};
+use medians::algosf64::partf64;
 use medians::{Me, Median, Medianf64};
 use ran::{generators::*, *};
 // use std::io::{stdout,Write};
@@ -39,24 +40,24 @@ const CLOSURESF64: [fn(&[f64]); 4] = [
 
 #[test]
 fn parting() {
-    let data = [
+    let mut data = [
         8., 7., 6., 5., 4., 3., 2., 1., 0., 1., 2., 3., 4., 5., 6., 7., 8.,
     ];
     let mid = midof3(&0, &16, &5);
     println!("Mid of three: {mid}");
-    let mut v: Vec<&f64> = data.iter().collect();
-    let pivot = 8_f64;
-    println!("Pivot {}, Input:\n{}", pivot.yl(), v.gr());
-    let len = v.len();
-    let (gtstart, mid, ltend) = part(&mut v, &(0..len), &pivot);
+    // let mut v: Vec<&f64> = data.iter().collect();
+    let pivot = 7_f64;
+    println!("Pivot {}, Input:\n{}", pivot.yl(), data.gr());
+    let len = data.len();
+    let (gtstart, mid, ltend) = partf64(&mut data, &(0..len), pivot);
     println!(
         "[gtstart,mid,ltend]: {}\nCommas show the subscripts' positions:\n\
-        {GR}[{}, {}, {}, {}]{UN}\nCheck - total items equal to pivot: {}",
+        {GR}[{}, {}, {}, {}]{UN}\n{} items equal to pivot",
         (gtstart, mid, ltend).gr(),
-        v[0..gtstart].to_plainstr(),
-        v[gtstart..mid].to_plainstr(),
-        v[mid..ltend].to_plainstr(),
-        v[ltend..len].to_plainstr(),
+        data[0..gtstart].to_plainstr(),
+        data[gtstart..mid].to_plainstr(),
+        data[mid..ltend].to_plainstr(),
+        data[ltend..len].to_plainstr(),
         (gtstart + len - ltend).yl()
     );
 }

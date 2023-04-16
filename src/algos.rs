@@ -49,10 +49,10 @@ where
 
 /// Partitions mutable set s within rng by pivot value. 
 /// The reordering is done in a single pass, with minimal comparisons.   
-/// Returns a triple of subscripts to new s: (gtstart, mid, ltend).  
-/// Items equal to pivot are either before gtstart or starting from ltend.  
+/// Returns a triple of subscripts to new s: `(gtstart, mid, ltend)`.  
+/// The count of items equal to pivot is: `(gtstart-rng.start) + (rng.end-ltend)`.  
 /// Items greater than pivot are in range (gtstart,mid) 
-/// Items lesser than pivot are in range (mid,ltend). 
+/// Items less than pivot are in range (mid,ltend). 
 /// Any of these four resulting sub-slices may be empty.
 pub fn part<T>(s: &mut [&T], rng: &Range<usize>, pivot: &T) -> (usize, usize, usize)
 where
@@ -71,7 +71,7 @@ where
         }
         if s[gtsub] == pivot {
             if gtsub > startsub {
-                s.swap(startsub, gtsub);
+                s[gtsub] = s[startsub];
             };
             if gtsub == ltsub {
                 return (1 + startsub, 1 + gtsub, 1 + endsub);
@@ -91,7 +91,7 @@ where
             }
             if s[ltsub] == pivot {
                 if ltsub < endsub {
-                    s.swap(ltsub, endsub);
+                    s[ltsub] = s[endsub];
                 };
                 ltsub -= 1;
                 if gtsub >= ltsub {

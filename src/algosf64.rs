@@ -18,10 +18,10 @@ pub fn midof3f64(item1: f64, item2: f64, item3: f64) -> f64 {
 
 /// Partitions mutable set s within rng by pivot value. 
 /// The reordering is done in a single pass, with minimal comparisons.   
-/// Returns a triple of subscripts to new s: (gtstart, mid, ltend).  
-/// Items equal to pivot are either before gtstart or starting from ltend.  
+/// Returns a triple of subscripts to new s: `(gtstart, mid, ltend)`.  
+/// The count of items equal to pivot is `(gtstart-rng.start) + (rng.end-ltend)`.  
 /// Items greater than pivot are in range (gtstart,mid) 
-/// Items lesser than pivot are in range (mid,ltend). 
+/// Items less than pivot are in range (mid,ltend). 
 /// Any of these four resulting sub-slices may be empty.
 pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, usize) {
     let mut startsub = rng.start;
@@ -31,13 +31,13 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, 
     loop {
         while s[gtsub] > pivot {
             if gtsub == ltsub {
-                return (startsub, 1 + gtsub, 1 + endsub);
+                return (startsub, gtsub+1, endsub+1);
             };
             gtsub += 1;
         }
         if s[gtsub] == pivot {
             if gtsub > startsub {
-                s.swap(startsub, gtsub);
+                s[gtsub] = s[startsub];
             };
             if gtsub == ltsub {
                 return (1 + startsub, 1 + gtsub, 1 + endsub);
@@ -57,7 +57,7 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, 
             }
             if s[ltsub] == pivot {
                 if ltsub < endsub {
-                    s.swap(ltsub, endsub);
+                    s[ltsub] = s[endsub];
                 };
                 ltsub -= 1;
                 if gtsub >= ltsub {
@@ -76,6 +76,7 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, 
         };
     }
 }
+
 
 /// Minimum value within a range in a slice
 pub fn minf64(s: &[f64], rng: Range<usize>) -> f64 {

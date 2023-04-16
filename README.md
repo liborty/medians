@@ -104,18 +104,10 @@ Holds the sample parameters: centre (here the median), and the spread measure, (
 
 ## Release Notes
 
+**Version 2.2.3** - Slight further improvement to efficiency of `part`.
+
 **Version 2.2.2** - Corrected some comment and readme typos. No change in functionality.
 
 **Version 2.2.1** - Some code pruning and streamlining. No change in functionality.
 
 **Version 2.2.0** - Major new version with much improved speed and generality and some breaking changes (renaming).
-
-**Version 2.1.7** - More pruning and test improvements.
-
-**Version 2.1.6** - Fixed a bug in `fmin2` and `fmax2` that made the median one off the centre sometimes. Apologies. Pruned some code.
-
-**Version 2.1.3** - Simplified odd/even strict medians. Updated indxvec dependency. Fixed dependency and tests.
-
-**Version 2.1.1** - Simplified/improved the display of struct MStats.
-
-**Version 2.1.0** - Added omitted method `zeromedianf64`. Upped the version.
