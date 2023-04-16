@@ -12,21 +12,23 @@ use medians::{MStats,Medianf64,Median};
 
 ## Introduction
 
-Finding medians is a common task in statistics and general data analysis. At least it should be common. Median is a more stable measure of central tendency than a mean. Similarly, MAD (median of absolute differences from median) is more stable measure of data spread than standard deviation. They are not used nearly enough, simply for historical reasons: being slower and more difficult to compute. The fast algorithms developed here present a practical remedy for this situation.
+Finding medians is a common task in statistics and data analysis. At least it should be. Median is more stable measure of central tendency than mean. Similarly, MAD (median of absolute differences from median) is more stable measure of data spread than standard deviation. Median and MAD are not used enough simply for historical reasons, i.e. being slower and more difficult to compute. The fast algorithms developed here present a practical remedy for this situation.
 
-We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geometric Median is the most stable way to characterise multidimensional data. That leaves the one dimensional case, addressed here.
+We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geometric Median is the most stable way to characterise multidimensional data. The one dimensional case is addressed here.
 
 See [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs) for examples of usage. Their automatically generated output can also be found by clicking the 'test' icon at the top of this document and then examining the latest log.
 
 ## Algorithms Analysis
 
-Median can be found naively by sorting the list of data and then picking the midpoint. When using the best known sort algorithm(s), the complexity is `O(nlog(n))`. Faster median algorithms, with complexity `O(n)`, are based on the observation that not all data items need to be fully sorted, only partitioned and counted off. Therefore the naive median can not compete. It has been deleted as of version 2.0.0.
+Median can be found naively by sorting the list of data and then picking the midpoint. When using the best known sort algorithm(s), the complexity is `O(nlog(n))`. Faster median algorithms, with complexity `O(n)` are possible. They are based on the observation that not all data items need to be fully sorted, only partitioned and counted off. Therefore the naive median can not compete. It has been deleted as of version 2.0.0.
 
-Currently considered to be the 'state of the art' algorithm is Floyd-Rivest (1975) Median of Medians. This divides the data into groups of five items, finds a median of each group and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. This pivot is guaranteed to produce 'pretty good' partitions.
+Currently considered to be the 'state of the art' algorithm is Floyd-Rivest (1975) Median of Medians. This divides the data into groups of five items, finds a median of each group and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. This pivot is guaranteed to produce 'pretty good' partitioning, though not necessarily perfect.
 
-However, the overall objective is not to find the optimal pivot. Rather, the fastest algorithm will be the one capable of eliminating the maximum number of items per unit of time. Therefore the expense of choosing the pivot enters into the equation. It is possible to allow less optimal pivots, as we do, and yet on average achieve more eliminations.
+However, the overall objective is not to find the optimal pivot. Rather, the fastest algorithm will be the one eliminating overall the most items per unit of time. Therefore, the expense of choosing the pivot must be considered. It is possible to allow less optimal pivots, as we do here, and yet on average compute medians faster.
 
-Let our average ratio of items remaining after one partition be RS and Floyd-Rivest be RF. Where `1/2 <= RF <= RS < 1` (RF is more optimal). But suppose that we can do two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). We then get  better performance when: `RS^2 < RF`, which is entirely possible and seems to be confirmed in practice. For example, RF=0.65 (nearly optimal), RS=0.8 (deeply suboptimal), yet `RS^2 < RF`.
+Let our average ratio of items remaining after one partitioning be RS and the Floyd-Rivest be RF. Where `1/2 <= RF <= RS < 1`. RF is more optimal, being nearer to the perfect ratio `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `RS^2 < RF`, which is entirely possible and seems to be confirmed in practice. For example, RF=0.65 (nearly optimal), RS=0.8 (deeply suboptimal), yet `RS^2 < RF`.
+
+The core of our median algorithm is fast (in place) iterative partitioning, combined with a simple pivot selection strategy (median of a sample of three). This algorithm has linear complexity and performs very well.
 
 ## Trait Medianf64
 
@@ -35,7 +37,7 @@ Let our average ratio of items remaining after one partition be RS and Floyd-Riv
 pub trait Medianf64 {
     /// Finds the median, fast. 
     fn median(self) -> Result<f64, Me>;  
-     /// Zero median data produced by finding and subtracting the median. 
+     /// finds and subtracts the median from data. 
     fn zeromedian(self) -> Result<Vec<f64>, Me>;
     /// Median correlation = cosine of an angle between two zero median vecs
     fn mediancorr(self,v: &[f64]) -> Result<f64, Me>;
@@ -46,12 +48,6 @@ pub trait Medianf64 {
 }
 ```
 
-### `median`
-
-this method iteratively partitions f64 data around a pivot. The core of this and most of the following algorithms is fast (in place) partitioning function, combined with a simple pivot selection strategy (median of a sample of three). Our partitioning strategy is particularly fast  on data with repeated values.
-
-This is our fastest algorithm. It has linear complexity and performs very well.
-
 ## Trait Median
 
 Is the general version of `Medianf64`. Most methods take an extra argument, a quantification closure, which evaluates T to f64.
@@ -61,7 +57,7 @@ Perhaps keeping their different names may have been simpler but the auto referen
 
  The `quantify` closures allow not just standard `as` and `into()` conversions but also different competing ways of quantifying more complex types.
 
-For some types even the quantification is not possible. For those there are methods `generic_odd` and `generic_even`, which return references to the actual central item(s) but otherwise use much the same code. They are particularly suited to large types which we might not wish to move or clone. They incur only the additional cost of the extra layer of referencing.
+For some types the quantification may not be possible. For those there are methods `generic_odd` and `generic_even`, which return references to the  central item(s) but otherwise use much the same code. They are particularly suited to large types which one might not wish to move or clone. They incur only the additional cost of the extra layer of referencing.
 
 ```rust
 /// Fast 1D generic medians and associated information and tasks.  
