@@ -1,12 +1,12 @@
 use core::ops::Range;
 
 /// Maps general `quantify` closure to self, converting the type T -> U
-pub fn quant_vec<T, U>(v: &[T], quantify: &mut impl FnMut(&T) -> U) -> Vec<U> {
+pub fn quant_vec<T, U>(v: &[T], quantify: impl Fn(&T) -> U) -> Vec<U> {
     v.iter().map(quantify).collect::<Vec<U>>()
 }
 
 /// measure errors in median
-pub fn balance<T>(s: &[T], x: f64, quantify: &mut impl FnMut(&T) -> f64) -> i64 {
+pub fn balance<T>(s: &[T], x: f64, quantify: impl Fn(&T) -> f64) -> i64 {
     let mut bal = 0_i64;
     let mut eq = 0_i64;
     for si in s {

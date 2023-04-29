@@ -100,7 +100,7 @@ Holds the sample parameters: centre (here the median), and the spread measure, (
 
 ## Release Notes
 
-**Version 2.2.4** - Upped dependency on `indxvec` to version 1.8.
+**Version 2.2.5** - Upped dependency on `indxvec` to version 1.8.
 
 **Version 2.2.3** - Slight further improvement to efficiency of `part`.
 

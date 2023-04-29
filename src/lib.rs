@@ -134,26 +134,26 @@ impl Medianf64 for &[f64] {
 /// `(&v[..]).method` or `v.as_slice().method`
 pub trait Median<T> {
     /// Finds the median of `&[T]`, fast. 
-    fn median(&self, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, Me>; 
+    fn median(&self, quantify: impl Fn(&T) -> f64) -> Result<f64, Me>; 
     /// Odd median for any PartialOrd type T 
     fn generic_odd(&self) -> Result<&T, Me>;
     /// Even median for any PartialOrd type T 
     fn generic_even(&self) -> Result<(&T,&T), Me>;
     /// Zero median data produced by finding and subtracting the median. 
-    fn zeromedian(&self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Vec<f64>, Me>;
+    fn zeromedian(&self, quantify: impl Copy + Fn(&T) -> f64) -> Result<Vec<f64>, Me>;
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn mediancorr(&self,v: &[T],quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, Me>;
+    fn mediancorr(&self,v: &[T],quantify: impl Copy + Fn(&T) -> f64) -> Result<f64, Me>;
     /// Median of absolute differences (MAD).
-    fn mad(&self, med: f64, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, Me>;
+    fn mad(&self, med: f64, quantify: impl Fn(&T) -> f64) -> Result<f64, Me>;
     /// Median and MAD.
-    fn medstats(&self, quantify: &mut impl FnMut(&T) -> f64) -> Result<MStats, Me>;
+    fn medstats(&self, quantify: impl Copy + Fn(&T) -> f64) -> Result<MStats, Me>;
 }
 
 impl<T> Median<T> for &[T]
 where T:PartialOrd
 { 
     /// Median using user defined quantification for `T->U` conversion, where U:Ord 
-    fn median(&self, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, Me>
+    fn median(&self, quantify: impl Fn(&T) -> f64) -> Result<f64, Me>
     {
         let n = self.len(); 
         match n {
@@ -211,7 +211,7 @@ where T:PartialOrd
 
     /// Zero median data produced by subtracting the median.
     /// Analogous to zero mean data when subtracting the mean.
-    fn zeromedian(&self, quantify: &mut impl FnMut(&T) -> f64) -> Result<Vec<f64>, Me>     
+    fn zeromedian(&self, quantify: impl Copy + Fn(&T) -> f64) -> Result<Vec<f64>, Me>     
     {
         let median = self.median(quantify)?;
         Ok(self.iter().map(|s| quantify(s) - median).collect())
@@ -224,9 +224,9 @@ where T:PartialOrd
     /// use medians::Median;
     /// let v1 = vec![1_f64,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.];
     /// let v2 = vec![14_f64,1.,13.,2.,12.,3.,11.,4.,10.,5.,9.,6.,8.,7.];
-    /// assert_eq!((&v1[..]).mediancorr(&v2, &mut |&f| f).unwrap(),-0.1076923076923077);
+    /// assert_eq!((&v1[..]).mediancorr(&v2, |&f| f).unwrap(),-0.1076923076923077);
     /// ```
-    fn mediancorr(&self, v: &[T], quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, Me> {
+    fn mediancorr(&self, v: &[T], quantify: impl Copy + Fn(&T) -> f64) -> Result<f64, Me> {
         let fself = quant_vec(self,quantify);
         let fv = quant_vec(v,quantify);
         fself.mediancorr(&fv)
@@ -236,7 +236,7 @@ where T:PartialOrd
     /// MAD is more stable than standard deviation and more general than quartiles.
     /// When argument `med` is the median, it is the most stable measure of data dispersion.
     /// However, any central tendency can be used.
-    fn mad(&self, med: f64, quantify: &mut impl FnMut(&T) -> f64) -> Result<f64, Me> {
+    fn mad(&self, med: f64, quantify: impl Fn(&T) -> f64) -> Result<f64, Me> {
         self.iter()
             .map(|s| ((quantify(s) - med).abs()))
             .collect::<Vec<f64>>()
@@ -244,7 +244,7 @@ where T:PartialOrd
     }
 
     /// Centre and dispersion defined by median
-    fn medstats(&self, quantify: &mut impl FnMut(&T) -> f64) -> Result<MStats, Me> {
+    fn medstats(&self, quantify: impl Copy + Fn(&T) -> f64) -> Result<MStats, Me> {
         let centre = self.median(quantify)?;
         Ok(MStats {
             centre,

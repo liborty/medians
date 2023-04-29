@@ -23,7 +23,7 @@ const CLOSURESF64: [fn(&[f64]); 4] = [
         v.median().expect("medianf64 closure failed");
     },
     |v: &[_]| {
-        (&v).median(&mut |&x| x).expect("median closure failed");
+        (&v).median(|&x| x).expect("median closure failed");
     },
     |v: &[_]| {
         if v.len() & 1 == 0 {
@@ -76,7 +76,7 @@ fn text() {
         v.sorth(|s| s.len() as f64, true).gr()
     );
     let median_word = (&v[..])
-        .median(&mut |&s| s.len() as f64)
+        .median(|&s| s.len() as f64)
         .expect("text(): Median failed\n");
     println!("Median word length in bytes is: {}", median_word.yl());
     println!("Merge sorted by lexicon: {}", v.sortm(true).gr());
@@ -115,9 +115,9 @@ fn errors() -> Result<(), Me> {
             let v = rv.ranv(d).expect("Random vec genertion failed").getvu8()?; // random vector
             let med = v
                 .as_slice()
-                .median(&mut |f| *f as f64)
+                .median(|f| *f as f64)
                 .expect("even errors test"); // &mut |t:&u8| *t as f64
-            error += balance(&v, med, &mut |f| *f as f64);
+            error += balance(&v, med, |f| *f as f64);
         }
         println!("Even length {GR}{d}{UN}, repeats: {GR}{n}{UN}, errors: {GR}{error}{UN}");
         error = 0_i64;
@@ -126,9 +126,9 @@ fn errors() -> Result<(), Me> {
             let v = ranvu8(d + 1).expect("Random vec genertion failed"); // random vector
             let med = v
                 .as_slice()
-                .median(&mut |t: &u8| *t as f64)
+                .median(|t: &u8| *t as f64)
                 .expect("odd errors test");
-            error += balance(&v, med, &mut |f| *f as f64);
+            error += balance(&v, med, |f| *f as f64);
         }
         println!(
             "Odd  length {GR}{}{UN}, repeats: {GR}{}{UN}, errors: {GR}{}{UN}",
