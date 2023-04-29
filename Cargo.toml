@@ -1,6 +1,6 @@
 [package]
 name = "medians"
-version = "2.2.3"
+version = "2.2.4"
 authors = ["Libor Spacek"]
 edition = "2021"
 description = "Median, Statistical Measures, Mathematics, Statistics"
@@ -23,7 +23,7 @@ include = [
 maintenance = { status = "actively-developed" }
 [lib]
 [dependencies]
-indxvec = "1.7"
+indxvec = "1.8"
 ran = "1.1"
 [dev-dependencies]
 devtimer = "4.0"

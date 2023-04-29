@@ -73,7 +73,7 @@ fn text() {
     println!("{}", v.gr()); // Display
     println!(
         "Hash sorted by word lengths: {}",
-        v.sorth(&mut |&s| s.len() as f64, true).gr()
+        v.sorth(|s| s.len() as f64, true).gr()
     );
     let median_word = (&v[..])
         .median(&mut |&s| s.len() as f64)
