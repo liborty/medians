@@ -64,29 +64,22 @@ For some types the quantification may not be possible. For those there are metho
 /// Using auto referencing to disambiguate conflicts 
 /// with five more specific Medianf64 methods with the same names.  
 /// To invoke specifically these generic versions, add a reference:  
-/// `(&v[..]).method` or `v.as_slice().method`.  
-/// Apart from `generic_odd` and `generic_even`, a `quantify` closure
-/// also has to be added as an argument.
+/// `(&v[..]).method` or `v.as_slice().method`
 pub trait Median<T> {
     /// Finds the median of `&[T]`, fast. 
-    fn median(&self, quantify: &mut impl FnMut(&T) -> f64) 
-        -> Result<f64, Me>; 
+    fn median(&self, quantify: impl Fn(&T) -> f64) -> Result<f64, Me>; 
     /// Odd median for any PartialOrd type T 
     fn generic_odd(&self) -> Result<&T, Me>;
     /// Even median for any PartialOrd type T 
     fn generic_even(&self) -> Result<(&T,&T), Me>;
     /// Zero median data produced by finding and subtracting the median. 
-    fn zeromedian(&self, quantify: &mut impl FnMut(&T) -> f64) 
-        -> Result<Vec<f64>, Me>;
+    fn zeromedian(&self, quantify: impl Copy + Fn(&T) -> f64) -> Result<Vec<f64>, Me>;
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn mediancorr(&self,v: &[T],quantify: &mut impl FnMut(&T) -> f64) 
-        -> Result<f64, Me>;
+    fn mediancorr(&self,v: &[T],quantify: impl Copy + Fn(&T) -> f64) -> Result<f64, Me>;
     /// Median of absolute differences (MAD).
-    fn mad(&self, med: f64, quantify: &mut impl FnMut(&T) -> f64) 
-        -> Result<f64, Me>;
+    fn mad(&self, med: f64, quantify: impl Fn(&T) -> f64) -> Result<f64, Me>;
     /// Median and MAD.
-    fn medstats(&self, quantify: &mut impl FnMut(&T) -> f64) 
-        -> Result<MStats, Me>;
+    fn medstats(&self, quantify: impl Copy + Fn(&T) -> f64) -> Result<MStats, Me>;
 }
 ```
 
