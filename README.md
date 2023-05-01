@@ -1,10 +1,10 @@
 # Medians [<img alt="crates.io" src="https://img.shields.io/crates/v/medians?logo=rust">](https://crates.io/crates/medians) [<img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/liborty/medians/HEAD?logo=github">](https://github.com/liborty/medians) [![Actions Status](https://github.com/liborty/medians/workflows/test/badge.svg)](https://github.com/liborty/medians/actions)
 
-**Author: Libor Spacek**
+### **by Libor Spacek**
 
 Fast algorithm for finding 1d medians, implemented in Rust.
 
-## Usage
+### Usage
 
 ```rust
 use medians::{MStats,Medianf64,Median};
@@ -12,7 +12,7 @@ use medians::{MStats,Medianf64,Median};
 
 ## Introduction
 
-Finding medians is a common task in statistics and data analysis. At least it should be. Median is more stable measure of central tendency than mean. Similarly, MAD (median of absolute differences from median) is more stable measure of data spread than standard deviation. Median and MAD are not used enough simply for historical reasons, i.e. being slower and more difficult to compute. The fast algorithms developed here present a practical remedy for this situation.
+Finding medians is a common task in statistics and data analysis. At least it should be, because Median is more stable measure of central tendency than mean. Similarly, `mad` (median of absolute differences from median) is a more stable measure of data spread than is standard deviation. Median and mad are not used nearly enough simply for historical reasons; being more difficult to compute. The fast algorithms presented here provide a practical remedy for this situation.
 
 We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geometric Median is the most stable way to characterise multidimensional data. The one dimensional case is addressed here.
 
@@ -24,13 +24,17 @@ Median can be found naively by sorting the list of data and then picking the mid
 
 Currently considered to be the 'state of the art' algorithm is Floyd-Rivest (1975) Median of Medians. This divides the data into groups of five items, finds a median of each group and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. This pivot is guaranteed to produce 'pretty good' partitioning, though not necessarily perfect.
 
-However, the overall objective is not to find the optimal pivot. Rather, the fastest algorithm will be the one eliminating overall the most items per unit of time. Therefore, the expense of choosing the pivot must be considered. It is possible to allow less optimal pivots, as we do here, and yet on average compute medians faster.
+However, to find the best pivot is not the main objective. Rather, it is to count off eccentric data items as fast as possible. Therefore, the expense of choosing the pivot must be considered. It is possible to allow less optimal pivots, as we do here and yet, on average, to find the  median faster.
 
-Let our average ratio of items remaining after one partitioning be RS and the Floyd-Rivest be RF. Where `1/2 <= RF <= RS < 1`. RF is more optimal, being nearer to the perfect ratio `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `RS^2 < RF`, which is entirely possible and seems to be confirmed in practice. For example, RF=0.65 (nearly optimal), RS=0.8 (deeply suboptimal), yet `RS^2 < RF`.
+Let our average ratio of items remaining after one partitioning be RS and the Floyd-Rivest be RF. Where `1/2 <= RF <= RS < 1`. RF is more optimal, being nearer to the perfect ratio `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `RS^2 < RF`, which is entirely possible and seems to be confirmed in practice. For example, `RF=0.65` (nearly optimal), `RS=0.8` (deeply suboptimal), yet `RS^2 < RF`.
 
-The core of our median algorithm is fast (in place) iterative partitioning, combined with a simple pivot selection strategy (median of a sample of three). This algorithm has linear complexity and performs very well.
+The main features of our median algorithm are:
 
-## Trait Medianf64
+* Linear complexity.
+* Fast (in place) iterative partitioning, minimising data movements and memory management.
+* Simple pivot selection strategy (median of a sample of three). This is enough to guarantee convergence, even in the worst case.
+
+## Trait `Medianf64`
 
 ```rust
 /// Fast 1D f64 medians and associated tasks
@@ -48,16 +52,17 @@ pub trait Medianf64 {
 }
 ```
 
-## Trait Median
+## Trait `Median`
 
-Is the general version of `Medianf64`. Most methods take an extra argument, a quantification closure, which evaluates T to f64.
+Is the generic version of `Medianf64`. Most of its methods take an extra argument, a `quantify` closure, which evaluates T to f64. This extends their applicability to all quantifiable generic types T. The closures facilitate not just standard `as` and `.into()` conversions but also any number of custom ways of quantifying more complex data types. The conversion incurs some extra cost but it is only done once.
 
-Five of the methods have the same names and perform the same roles as those in trait `Medianf64` above, except for the extra cost of the quantification conversions, which extend their applicability to all 'quantifiable' generic types T. 
-Perhaps keeping their different names may have been simpler but the auto referencing is more automated.
+Five of the methods fulfil the same roles as those in trait `Medianf64` above, so instead of renaming them, we use auto referencing.
 
- The `quantify` closures allow not just standard `as` and `into()` conversions but also different competing ways of quantifying more complex types.
+**`generic_odd, generic_even`**
 
-For some types the quantification may not be possible. For those there are methods `generic_odd` and `generic_even`, which return references to the  central item(s) but otherwise use much the same code. They are particularly suited to large types which one might not wish to move or clone. They incur only the additional cost of the extra layer of referencing.
+are provided for types for which the quantification is not possible, only direct comparison. They return references to the central item(s) but otherwise use the same algorithm. The only  additional cost is an extra layer of referencing. These methods are particularly suitable for large data types, as the data is not moved around.
+
+When the data items are unquantifiable, we can not simply average the two midpoints of even length data, as we did before. So we return them both as a pair tuple, the smaller one first. Therefore these two methods return results of different types: `&T` and `(&T,&T)` respectively. The user has to deal with them appropriately.
 
 ```rust
 /// Fast 1D generic medians and associated information and tasks.  
@@ -83,15 +88,13 @@ pub trait Median<T> {
 }
 ```
 
-**`generic_even`**
-
-When the data items are unquantifiable, we can not simply average the two midpoints of even length data, as we did in `median`. So we return them both as a pair tuple, the smaller one first. Otherwise very similar to `generic_odd`. Note however, that these two methods return results of different types: `(&T,&T)` and `&T` respectively. Therefore the user has to deal with them explicitly, as appropriate.
-
 ## `Struct MStats`
 
 Holds the sample parameters: centre (here the median), and the spread measure, (here MAD = median of absolute differences from the median). MAD is the most stable measure of data spread. Alternatively, MStats can hold the mean and the standard deviation, as computed in crate RStats.
 
 ## Release Notes
+
+**Version 2.2.6** - Improved `README.md`. No changes to the code.
 
 **Version 2.2.5** - Upped dependency on `indxvec` to version 1.8.
 
