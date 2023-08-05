@@ -41,17 +41,15 @@ const CLOSURESF64: [fn(&[f64]); 4] = [
 #[test]
 fn parting() {
     let mut data = [
-        8., 7., 6., 5., 4., 3., 2., 1., 0., 1., 2., 3., 4., 5., 6., 7., 8.,
+        8., 7., 6., 5., 4., 3., 2., 1., 0., 1., 2., 3., 4., 5., 6., 7., 7.,
     ];
-    let mid = midof3(&0, &16, &5);
-    println!("Mid of three: {mid}");
-    // let mut v: Vec<&f64> = data.iter().collect();
-    let pivot = 7_f64;
-    println!("Pivot {}, Input:\n{}", pivot.yl(), data.gr());
+    println!("Input:   {}",data.gr());
+    // let mid = midof3(&0, &16, &5);
+    // println!("Mid of three: {mid}");  
     let len = data.len();
-    let (gtstart, mid, ltend) = partf64(&mut data, &(0..len), pivot);
-    println!(
-        "[gtstart,mid,ltend]: {}\nCommas show the subscripts' positions:\n\
+    let (pivot, gtstart, mid, ltend) = partf64(&mut data, &(0..len));
+    println!("Pivot {}: {}",pivot.yl(),data.gr()); 
+    println!("[gtstart,mid,ltend]: {}\nCommas show the subscripts' positions:\n\
         {GR}[{}, {}, {}, {}]{UN}\n{} items equal to pivot",
         (gtstart, mid, ltend).gr(),
         data[0..gtstart].to_plainstr(),

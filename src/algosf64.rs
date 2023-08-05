@@ -23,15 +23,16 @@ pub fn midof3f64(item1: f64, item2: f64, item3: f64) -> f64 {
 /// Items greater than pivot are in range (gtstart,mid) 
 /// Items less than pivot are in range (mid,ltend). 
 /// Any of these four resulting sub-slices may be empty.
-pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, usize) {
+pub fn partf64(s: &mut [f64], rng: &Range<usize>) -> (f64, usize, usize, usize) {
     let mut startsub = rng.start;
     let mut gtsub = startsub;
-    let mut ltsub = rng.end - 1;
     let mut endsub = rng.end - 1;
+    let mut ltsub = endsub;
+    let pivot = midof3f64(s[startsub], s[(startsub + rng.end) / 2], s[endsub]);
     loop {
         while s[gtsub] > pivot {
             if gtsub == ltsub {
-                return (startsub, gtsub+1, endsub+1);
+                return (pivot, startsub, 1 + gtsub, 1 + endsub);
             };
             gtsub += 1;
         }
@@ -40,7 +41,7 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, 
                 s[gtsub] = s[startsub];
             };
             if gtsub == ltsub {
-                return (1 + startsub, 1 + gtsub, 1 + endsub);
+                return (pivot, 1 + startsub, 1 + gtsub, 1 + endsub);
             };
             startsub += 1;
             gtsub += 1;
@@ -51,7 +52,7 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, 
                 ltsub -= 1;
                 // s[gtsub] here is already known to be lt pivot, so assign it to lt set
                 if gtsub >= ltsub {
-                    return (startsub, gtsub, 1 + endsub);
+                    return (pivot, startsub, gtsub, 1 + endsub);
                 };
                 continue 'lt;
             }
@@ -61,7 +62,7 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, 
                 };
                 ltsub -= 1;
                 if gtsub >= ltsub {
-                    return (startsub, gtsub, endsub);
+                    return (pivot, startsub, gtsub, endsub);
                 };
                 endsub -= 1;
                 continue 'lt;
@@ -72,7 +73,7 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>, pivot: f64) -> (usize, usize, 
         gtsub += 1;
         ltsub -= 1;
         if gtsub > ltsub {
-            return (startsub, gtsub, 1 + endsub);
+            return (pivot, startsub, gtsub, 1 + endsub);
         };
     }
 }
@@ -142,8 +143,7 @@ pub fn med_oddf64(s: &mut [f64]) -> f64 {
     let mut need = s.len() / 2; // need as subscript
     loop {
         // Take a sample from start,mid,end of data and use their midpoint as a pivot
-        let pivot = midof3f64(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
-        let (gtsub, ltsub, ltend) = partf64(s, &rng, pivot);
+        let (pivot, gtsub, ltsub, ltend) = partf64(s, &rng);
         // somewhere within ltset, iterate on it
         if need + ltsub - rng.start + 2 < ltend {
             need += ltsub - rng.start;
@@ -190,8 +190,7 @@ pub fn med_evenf64(s: &mut [f64]) -> (f64, f64) {
     let mut rng = 0..s.len();
     let mut need = s.len() / 2 - 1; // need as subscript - 1
     loop {
-        let pivot = midof3f64(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
-        let (gtsub, ltsub, ltend) = partf64(s, &rng, pivot);
+        let (pivot, gtsub, ltsub, ltend) = partf64(s, &rng);
         // somewhere within ltset, iterate on it
         if need + ltsub - rng.start + 2 < ltend {
             need += ltsub - rng.start;
