@@ -96,7 +96,9 @@ Holds the sample parameters: centre (here the median), and the spread measure, (
 
 ## Release Notes
 
-**Version 2.3.0** - Some minor changes to `algosf64.rs`. Improvements to this manual. Semver compliant new version.
+**Version 2.3.1** - Minor further speed optimisation of `partf64`
+
+**Version 2.3.0** - Some minor changes to `algosf64.rs`. Improvements to this manual.
 
 **Version 2.2.6** - Improved `README.md`. No changes to the code.
 

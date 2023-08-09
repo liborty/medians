@@ -37,9 +37,7 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>) -> (f64, usize, usize, usize) 
             gtsub += 1;
         }
         if s[gtsub] == pivot {
-            if gtsub > startsub {
-                s[gtsub] = s[startsub];
-            };
+            s[gtsub] = s[startsub];
             if gtsub == ltsub {
                 return (pivot, 1 + startsub, 1 + gtsub, 1 + endsub);
             };
@@ -57,9 +55,7 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>) -> (f64, usize, usize, usize) 
                 continue 'lt;
             }
             if s[ltsub] == pivot {
-                if ltsub < endsub {
-                    s[ltsub] = s[endsub];
-                };
+                s[ltsub] = s[endsub]; 
                 ltsub -= 1;
                 if gtsub >= ltsub {
                     return (pivot, startsub, gtsub, endsub);
@@ -77,7 +73,6 @@ pub fn partf64(s: &mut [f64], rng: &Range<usize>) -> (f64, usize, usize, usize) 
         };
     }
 }
-
 
 /// Minimum value within a range in a slice
 pub fn minf64(s: &[f64], rng: Range<usize>) -> f64 {

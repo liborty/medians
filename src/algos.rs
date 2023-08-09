@@ -70,9 +70,7 @@ where
             gtsub += 1;
         }
         if s[gtsub] == pivot {
-            if gtsub > startsub {
-                s[gtsub] = s[startsub];
-            };
+            s[gtsub] = s[startsub]; 
             if gtsub == ltsub {
                 return (1 + startsub, 1 + gtsub, 1 + endsub);
             };
@@ -89,10 +87,8 @@ where
                 };
                 continue 'lt;
             }
-            if s[ltsub] == pivot {
-                if ltsub < endsub {
-                    s[ltsub] = s[endsub];
-                };
+            if s[ltsub] == pivot { 
+                s[ltsub] = s[endsub]; 
                 ltsub -= 1;
                 if gtsub >= ltsub {
                     return (startsub, gtsub, endsub);
