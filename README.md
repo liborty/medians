@@ -101,6 +101,8 @@ pub trait Median<'a, T> {
 
 ## Release Notes
 
+**Version 3.0.1** - Renamed `correlation` to `med_correlation` to avoid name clashes elsewhere.
+
 **Version 3.0.0** - Numerous improvements to speed and generality and renaming. 
 
 **Version 2.3.1** - Further speed optimisation of `partf64`.
