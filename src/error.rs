@@ -9,6 +9,8 @@ use ran::Re;
 pub enum MedError<T> {
     /// Non positive data dimension
     Size(T),
+    /// NaN float NaN encountered
+    Nan(T),
     /// Other error converted to RanError
     Other(T),
 }
@@ -21,8 +23,8 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            MedError::Size(s) => write!(f, "Size of data must be positive: {s}"),
-            //<MedError<T> as std::convert::Into<T>>::into(s)),
+            MedError::Size(s) => write!(f, "Size of data must be positive: {s}"),            
+            MedError::Nan(s) => write!(f, "Floats must not include NaNs: {s}"), 
             MedError::Other(s) => write!(f, "Converted from: {s}"),
         }
     }
@@ -39,7 +41,8 @@ impl From<Re> for Me {
 /// from error kind name and payload message, which can be either &str or String
 pub fn merror(kind: &str, msg: impl Into<String>) -> Me {
     match kind {
-        "size" => MedError::Size(msg.into()), 
+        "size" => MedError::Size(msg.into()),
+        "nan" => MedError::Nan(msg.into()), 
         "other" => MedError::Other(msg.into()),
         _ => MedError::Other("Wrong error kind given to merror".into())
     }

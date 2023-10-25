@@ -1,9 +1,56 @@
 use core::ops::Range;
 use core::fmt::Debug;
+use core::ops::{Deref, Neg};
 
 /// The following defines Ord<T> struct which is a T that implements Ord.
 /// This boilerplate makes any wrapped T:PartialOrd, such as f64, into Ord
 #[derive(Clone,Copy,Debug)]
+/// Wrapper type for Ord f64
+pub struct Ordf64(f64);
+
+impl<T: std::fmt::Display> std::fmt::Display for Ordf64 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{self.0}")
+    }
+}
+impl Ordf64 {
+    pub fn new(value: f64) -> Self {
+        Ordf64(value)
+    }
+}
+impl Deref for Ordf64 {
+    type Target = f64;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl Neg for Ordf64 {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        Ordf64::new(-*self)
+    }
+}
+impl PartialOrd for Ordf64 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some((*self).cmp(other))
+    }
+}
+impl PartialEq for Ordf64 {
+    fn eq(&self, rhs: &Ordf64) -> bool {
+        (*self).cmp(rhs) == Equal
+    }
+}
+impl Ord for Ordf64 {
+    fn cmp(&self, other: &Self) -> Ordering {
+        (*self).total_cmp(other)
+    }
+}
+impl Eq for Ordf64 {}
+
+/// Turn v:&[f64] to Vec<Ordf64>
+pub fn ord_vec(v: &[f64]) -> Vec<Ordf64> {
+    v.iter().map(|f| Ordf64(f)).collect::<Vec<Ordf64>>()
+}
 
 pub struct Ordered<T>(pub T);
 
@@ -59,9 +106,161 @@ impl<T> From<T> for Ordered<T> {
     }
 }
 
-/// Turn v:&[T] to Vec<Ordered<&T>>
+/// Turn v:&[T] into Vec<Ordered<&T>>
 pub fn ord_vec<T>(v: &[T]) -> Vec<Ordered<&T>> {
     v.iter().map(Ordered).collect::<Vec<Ordered<&T>>>()
+}
+
+/*
+/// Subscripts of minimum and maximum locations within rng in slice s
+pub fn minmax<T>(
+    s: &[T],
+    rng: Range<usize>,
+    c: &mut impl FnMut(&T, &T) -> Ordering,
+) -> (usize, usize) {
+    let mut min = rng.start;
+    let mut max = min + 1;
+    if c(&s[max], &s[min]) == Ordering::Less {
+        min = max;
+        max = rng.start;
+    };
+    for i in rng.start + 2..rng.end {
+        let ti = &s[i];
+        if c(ti, &s[min]) == Ordering::Less {
+            min = i;
+        } else if c(&s[max], ti) == Ordering::Less {
+            max = i;
+        };
+    }
+    (min, max)
+}
+*/
+
+/// Partitions by pivot, in a single pass, mutable set `s` within `rng`.
+/// s[rng.end-1] is used as the ref of the pivot. Any prior pivot
+/// selection scheme must place it there.
+/// The three partitions are divided by returned `(gtstart,eqstart)`, where:
+/// `rng.start..gtstart` (may be empty) contains refs to items less than the pivot,
+/// `gtstart..eqstart` (may be empty) contains refs to items greater than the pivot,
+/// `eqstart..rng.end` contains zero or more undefined refs, ending with the pivot.
+/// The total number of items equal to the pivot is: `rng.end-eqstart` > 0.
+pub fn part<T>(
+    s: &mut [&T],
+    rng: &Range<usize>,
+    c: &mut impl FnMut(&T, &T) -> Ordering,
+) -> (usize, usize) {
+    let pivot = s[rng.end - 1];
+    let mut ltlast = rng.start;
+    let mut gtstart = rng.end - 2;
+    let mut eqstart = rng.end - 1;
+    loop {
+        match c(pivot, s[gtstart]) {
+            Less => {
+                if ltlast == gtstart {
+                    return (gtstart, eqstart);
+                };
+                gtstart -= 1;
+                continue;
+            }
+            Equal => {
+                eqstart -= 1;
+                s[gtstart] = s[eqstart]; // shifts gt range one down
+                if ltlast == gtstart {
+                    return (ltlast, eqstart);
+                };
+                gtstart -= 1;
+                continue;
+            }
+            Greater => (), // *s[gtstart] < *pivot
+        };
+        'lt: loop {
+            match c(s[ltlast], pivot) {
+                Less => {
+                    if gtstart == ltlast {
+                        return (gtstart + 1, eqstart);
+                    };
+                    ltlast += 1;
+                    continue 'lt;
+                }
+                Equal => {
+                    s[ltlast] = s[gtstart]; // making ltlast lt
+                    eqstart -= 1;
+                    s[gtstart] = s[eqstart]; // shifts gt range one down
+                }
+                Greater => {
+                    s.swap(ltlast, gtstart);
+                }
+            };
+            ltlast += 1;
+            gtstart -= 1;
+            if gtstart < ltlast {
+                return (gtstart + 1, eqstart);
+            };
+            break 'lt;
+        }
+    }
+}
+
+/// Partitions in-place mutable set `s` within range `rng`,
+/// using the given (ref of a) pivot.
+/// The two partitions are divided by gtstart, where:  
+/// for all items x in `rng.start..gtstart`: `x < pivot`,  
+/// for all items y in `gtstart..gtend`: `y > pivot`,
+/// `rng.end-gtend` is the number of items equal to pivot.
+/// The actual values in this last subrange are undefined.
+pub fn part<T>(s: &mut [T], rng: &Range<usize>, pivot: &T, mut c: impl FnMut(&T, &T) -> Ordering) -> usize { 
+    let mut gtstart = rng.end;
+    for ltend in rng.start..gtstart {
+        if c(pivot,&s[ltend]) == Less { 
+            gtstart -= 1;
+            swap(&s[ltend],&s[gtstart]); 
+         };
+    };
+    gtstart
+}
+
+/// Partitions in a single pass mutable set `s` within range `rng`,
+/// into three non empty subranges. Uses middle pair of a sample of four data values
+/// as `min_pivot` and `max_pivot`, moved to the last two positions. 
+/// The partitions are divided by `(gtstart,midstart)`, where:  
+/// for all items x in `rng.start..gtstart`: `x < min_pivot`,  
+/// for all items y in `gtstart..midstart`: `y > max_pivot`,   
+/// for all items z in midstart..rng.end `min_pivot <= z <= max_pivot`.
+pub fn part<T>(s: &mut [T], rng: &Range<usize>, mut c: impl FnMut(&T, &T) -> Ordering) 
+    -> (usize, usize) { 
+    let mut midstart = rng.end-2; 
+    let mut ltend = rng.start;
+    let mut gtstart = midstart-1;
+    // sort in place four samples of data
+    insert_sort(s, &[ ltend, midstart, midstart+1, gtstart ], c);
+    let mut minpivot = &s[midstart];
+    let mut maxpivot = &s[midstart+1]; 
+    loop {
+        gtstart -= 1;
+        if gtstart < ltend { return (ltend,midstart); }; 
+        if c(maxpivot,&s[gtstart]) == Less { continue; };
+        if c(&s[gtstart],minpivot) != Less { 
+            midstart -= 1;
+            s.swap(gtstart,midstart); 
+            continue;
+        }; 
+        // s[gtstart] < minpivot
+        loop {
+            ltend += 1; 
+            if gtstart < ltend { return (ltend,midstart); };  
+            if c(&s[ltend],minpivot) == Less { continue; };
+            if c(maxpivot,&s[ltend]) == Less { 
+                s.swap(ltend,gtstart);
+            } else {
+                let savedmidval = s[ltend];
+                s[ltend] = s[gtstart]; 
+                midstart -= 1;
+                s[gtstart] = s[midstart];  
+                s[midstart] = savedmidval;
+            };
+            break;
+        };
+    };
 }
 
 /// Finds the item at sort index k using the heap method
