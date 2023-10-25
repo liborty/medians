@@ -88,7 +88,7 @@ pub trait Median<'a, T> {
     /// Zero mean/median data, produced by subtracting the centre
     fn zeroed(self, centre: f64, quantify: impl Fn(&T) -> f64) -> Result<Vec<f64>, Me>;
     /// Median correlation = cosine of an angle between two zero median Vecs
-    fn correlation(
+    fn med_correlation(
         self,
         v: Self,
         c: &mut impl FnMut(&T, &T) -> Ordering,
