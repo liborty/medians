@@ -98,6 +98,15 @@ fn medf64() {
 }
 
 #[test]
+fn correlation() -> Result<(), Me> {
+    let rv = Rnum::newf64();
+    let v1 = rv.ranv(100).expect("Random vec genertion failed").getvf64()?; // random vector
+    let v2 = rv.ranv(100).expect("Random vec genertion failed").getvf64()?; // random vector
+    println!("medf_correlation: {}",v1.medf_correlation(&v2)?.gr());
+    Ok(())
+}
+
+#[test]
 fn errors() -> Result<(), Me> {
     let n = 10_usize; // number of vectors to test for each magnitude
     // set_seeds(33333);
