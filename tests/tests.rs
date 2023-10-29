@@ -4,7 +4,7 @@
 use indxvec::{here, printing::*, Indices, Mutops, Printing, Vecops};
 use medians::algos::{scrub_nans, to_u64s, to_f64s, qbalance, part, ref_vec, min, min2, isort_refs};
 // use medians::algosf64::partord;
-use medians::{Me, Median, Medianf64};
+use medians::{Me, medianu8, Median, Medianf64};
 use ran::{generators::*, *};
 // use std::io::{stdout,Write};
 use std::convert::From;
@@ -70,7 +70,7 @@ fn text() {
 #[test]
 fn medf64() {
     let v = [
-        10., 18., 17., 16., 15., 14., 1., 2., 3., 4., 5., 6., 7., 8., 17., 10., 11., 12., 13., 14., 15., 16., 18., 9.
+       9., 10., 18., 17., 16., 15., 14., 1., 2., 3., 4., 5., 6., 7., 8., 17., 10., 11., 12., 13., 14., 15., 16., 18., 9.
     ];
     println!("Data: {}",v.gr());
     let len = v.len();
@@ -83,7 +83,7 @@ fn medf64() {
         &mut <f64>::total_cmp,
     );
     println!(
-        "Result: {}\nCommas show the subranges:\n\
+        "Result: {}\nCommas separate the subranges:\n\
         {GR}[{}, {}, {}]{UN}\n{} items equal to the pivot {}",
         (eqsub,gtsub).yl(),
         vr[0..eqsub].to_plainstr(),
@@ -110,59 +110,68 @@ fn correlation() -> Result<(), Me> {
 fn errors() -> Result<(), Me> {
     let n = 10_usize; // number of vectors to test for each magnitude
     // set_seeds(33333);
-    let rv = Rnum::newf64();
+    let rv = Rnum::newu8();
     for d in [10, 50, 100, 1000, 10000, 100000] {
         let mut error = 0_i64;
         trait Eq: PartialEq<Self> {}
         impl Eq for f64 {}
         for _ in 0..n {
-            let v = rv.ranv(d).expect("Random vec genertion failed").getvf64()?; // random vector
-            let med = v
-                .as_slice()
-                .medf_unchecked();
-            error += qbalance(&v, &med,  |&f| f);
+            let v = rv.ranv(d).expect("Random vec genertion failed").getvu8()?; // random vector
+            let med = medianu8(&v)?;
+            // v
+                //.as_slice()
+                //.medf_unchecked();
+            error += qbalance(&v, &med,  |&f| f as f64);
         }
         println!("Even length {GR}{d}{UN}, repeats: {GR}{n}{UN}, errors: {GR}{error}{UN}");
         error = 0_i64;
-
         for _ in 0..n {
-            let v = rv.ranv(d + 1).expect("Random vec genertion failed").getvf64()?; // random vector
-            let med = v
-                .as_slice()
-                .medf_unchecked();
-            error += qbalance(&v, &med, |&f| f);
+            let v = rv.ranv(d + 1).expect("Random vec genertion failed").getvu8()?; // random vector
+            let med = medianu8(&v)?;
+            // v
+            //    .as_slice()
+            //    .medf_unchecked();
+            error += qbalance(&v, &med, |&f| f as f64);
         }
         println!(
-            "Odd  length {GR}{}{UN}, repeats: {GR}{}{UN}, errors: {GR}{}{UN}",
-            d + 1,
-            n,
-            error
+            "Odd  length {GR}{}{UN}, repeats: {GR}{n}{UN}, errors: {GR}{error}{UN}",
+            d + 1
         );
     }
     Ok(())
 }
 
 const NAMES: [&str; 4] = [
-   "medf_unchecked",
-   "medf_checked",
+ //  "medf_unchecked",
+   "qmedian",
    "median_by",
-   "mutisort" 
+   "mutisort",
+   "medianu8" 
 ];
 
-const CLOSURESF64: [fn(&[f64]); 4] = [
+const CLOSURESU8: [fn(&[u8]); 4] = [
+//    |v: &[_]| {
+//        v.medf_unchecked();
+//   },
+//    |v: &[_]| {
+//        v.medf_checked().expect("median closure failed");
+ //   },
+
     |v: &[_]| {
-        v.medf_unchecked();
-    },
+        v.qmedian_by(&mut <u8>::cmp,|&x| x as f64)
+        .expect("even median closure failed");
+    }, 
     |v: &[_]| {
-        v.medf_checked().expect("median closure failed");
-    },
-    |v: &[_]| {
-        v.median_by(&mut <f64>::total_cmp)
+        v.median_by(&mut <u8>::cmp)
             .expect("even median closure failed");
     },
     |v: &[_]| {
         let mut vm = v.to_owned();
-        vm.mutisort( 0..v.len(), |a:&f64,b:&f64| a.total_cmp(b));
+        vm.mutisort( 0..v.len(), |a:&u8,b| a.cmp(b));// |a:&f64,b:&f64| a.total_cmp(b));
+    },
+    |v: &[_]| {
+        medianu8(v)
+            .expect("medianu8 closure failed");
     },
 ];
 
@@ -170,5 +179,5 @@ const CLOSURESF64: [fn(&[f64]); 4] = [
 fn comparison() {
     // set_seeds(0); // intialise random numbers generator
     // Rnum encapsulates the type of random data to be generated
-    benchf64(Rnum::newf64(), 2..5000, 100, 10, &NAMES, &CLOSURESF64);
+    benchu8(Rnum::newu8(), 2..5000, 100, 10, &NAMES, &CLOSURESU8);
 }

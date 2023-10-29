@@ -14,7 +14,7 @@ pub mod error;
 use crate::algos::*;
 use crate::error::{merror, MedError};
 
-use core::{fmt::Display,cmp::Ordering};
+use core::{cmp::Ordering, fmt::Display};
 use indxvec::printing::{GR, UN, YL};
 
 /// Shorthand type for medians errors with message payload specialized to String
@@ -27,12 +27,35 @@ pub enum Medians<'a, T> {
     /// Even sized data results in a pair of (centered) medians
     Even((&'a T, &'a T)),
 }
-impl<T> std::fmt::Display for Medians<'_,T> where T:Display {
+impl<T> std::fmt::Display for Medians<'_, T>
+where
+    T: Display,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Medians::Odd(m) => { write!( f,"{YL}odd median: {GR}{}{UN}",*m ) },
-            Medians::Even((m1, m2)) => { write!(f,"{YL}even medians: {GR}{} {}{UN}",*m1,*m2) }
+            Medians::Odd(m) => {
+                write!(f, "{YL}odd median: {GR}{}{UN}", *m)
+            }
+            Medians::Even((m1, m2)) => {
+                write!(f, "{YL}even medians: {GR}{} {}{UN}", *m1, *m2)
+            }
         }
+    }
+}
+
+/// Median of primitive type u8 by fast radix search
+pub fn medianu8(s:&[u8]) -> Result<f64, Me> {
+    let n = s.len();
+    match n {
+        0 => return Err(merror("size", "median: zero length data")),
+        1 => return Ok(s[0] as f64),
+        2 => return Ok((s[0] as f64 + s[1] as f64) / 2.0),
+        _ => (),
+    };
+    if (n & 1) == 1 {
+        Ok(oddmedianu8(s))
+    } else {
+        Ok(evenmedianu8(s))
     }
 }
 
@@ -95,11 +118,11 @@ impl Medianf64 for &[f64] {
             })
             .collect::<Result<Vec<&f64>, Me>>()?;
         if (n & 1) == 1 {
-            let oddm = oddmedian_by(&mut s, &mut<f64>::total_cmp);
+            let oddm = oddmedian_by(&mut s, &mut <f64>::total_cmp);
             Ok(*oddm)
         } else {
-            let (&med1, &med2) = evenmedian_by(&mut s, &mut<f64>::total_cmp);
-            Ok((med1+med2)/2.0)
+            let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
+            Ok((med1 + med2) / 2.0)
         }
     }
     /// Use this when your data does not contain any NaNs.
@@ -115,17 +138,17 @@ impl Medianf64 for &[f64] {
         };
         let mut s = ref_vec(self, 0..self.len());
         if (n & 1) == 1 {
-            let oddm = oddmedian_by(&mut s, &mut<f64>::total_cmp);
+            let oddm = oddmedian_by(&mut s, &mut <f64>::total_cmp);
             *oddm
         } else {
-            let (&med1, &med2) = evenmedian_by(&mut s, &mut<f64>::total_cmp);
-            (med1+med2)/2.0
+            let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
+            (med1 + med2) / 2.0
         }
     }
     /// Zero mean/median data produced by subtracting the centre,
     /// typically the mean or the median.
     fn medf_zeroed(self, centre: f64) -> Vec<f64> {
-        self.iter().map(|&s| s-centre).collect()
+        self.iter().map(|&s| s - centre).collect()
     }
     /// Median correlation = cosine of an angle between two zero median vectors,
     /// (where the two data samples are interpreted as n-dimensional vectors).
@@ -146,8 +169,11 @@ impl Medianf64 for &[f64] {
             })
             .sum();
         let res = sxy / (sx2 * sy2).sqrt();
-        if res.is_nan() { Err(merror("Nan", "medf_correlation: Nan result!")) }
-        else { Ok(res) }
+        if res.is_nan() {
+            Err(merror("Nan", "medf_correlation: Nan result!"))
+        } else {
+            Ok(res)
+        }
     }
     /// Data dispersion estimator MAD (Median of Absolute Differences).
     /// MAD is more stable than standard deviation and more general than quartiles.
@@ -160,9 +186,7 @@ impl Medianf64 for &[f64] {
     }
 }
 
-/// Medians of &mut [T]. Data will get rearranged.
-/// This is generally faster than copying it unnecessarily.
-/// When this is not acceptable, make sure to make your own copy first!
+/// Medians of &[T]
 impl<'a, T> Median<'a, T> for &'a [T] {
     /// Median of `&[T]` by comparison `c`, quantified to a single f64 by `q`.
     /// When T is a primitive type directly convertible to f64, pass in `as f64` for `q`.
@@ -177,7 +201,7 @@ impl<'a, T> Median<'a, T> for &'a [T] {
     ) -> Result<f64, Me> {
         let n = self.len();
         match n {
-            0 => return Err(merror("size", "median_ord: zero length data")),
+            0 => return Err(merror("size", "qmedian_by: zero length data")),
             1 => return Ok(q(&self[0])),
             2 => return Ok((q(&self[0]) + q(&self[1])) / 2.0),
             _ => (),
@@ -190,6 +214,7 @@ impl<'a, T> Median<'a, T> for &'a [T] {
             Ok((q(med1) + q(med2)) / 2.0)
         }
     }
+
     /// Median(s) of unquantifiable type by general comparison closure
     fn median_by(self, c: &mut impl FnMut(&T, &T) -> Ordering) -> Result<Medians<'a, T>, Me> {
         let n = self.len();
@@ -206,6 +231,7 @@ impl<'a, T> Median<'a, T> for &'a [T] {
             Ok(Medians::Even(evenmedian_by(&mut s, c)))
         }
     }
+
     /// Zero mean/median data produced by subtracting the centre
     fn zeroed(self, centre: f64, q: impl Fn(&T) -> f64) -> Result<Vec<f64>, Me> {
         Ok(self.iter().map(|s| q(s) - centre).collect())
@@ -244,8 +270,11 @@ impl<'a, T> Median<'a, T> for &'a [T] {
             })
             .sum();
         let res = sxy / (sx2 * sy2).sqrt();
-        if res.is_nan() { Err(merror("Nan", "correlation: Nan result!")) }
-        else { Ok(res) } 
+        if res.is_nan() {
+            Err(merror("Nan", "correlation: Nan result!"))
+        } else {
+            Ok(res)
+        }
     }
     /// Data dispersion estimator MAD (Median of Absolute Differences).
     /// MAD is more stable than standard deviation and more general than quartiles.

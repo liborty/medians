@@ -5,12 +5,12 @@
 Fast algorithm for finding medians of one dimensional data, implemented in 100% safe Rust.
 
 ```rust
-use medians::{Medians,Medianf64,Median};
+use medians::{medianu8,Medians,Medianf64,Median};
 ```
 
 ## Introduction
 
-Finding medians is a common task in statistics and data analysis. At least it ought to be, because median is a more stable measure of central tendency than mean. Similarly, `mad` (median of absolute differences) is a more stable measure of data spread than standard deviation, dominated by squared outliers. Median and mad are not used nearly enough mostly for practical historical reasons: they are more difficult to compute. The fast algorithms presented here provide a practical remedy for this situation.
+Finding medians is a common task in statistics and data analysis. At least it ought to be, because median is a more stable measure of central tendency than mean. Similarly, `mad` (median of absolute differences) is a more stable measure of data spread than is standard deviation, which is dominated by squared outliers. Median and mad are not used nearly enough mostly for practical reasons: they are more difficult to compute. The fast algorithms presented here provide remedy for this situation.
 
 We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geometric Median is the most stable way to characterise multidimensional data. The one dimensional case is addressed here.
 
@@ -18,19 +18,26 @@ See [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs) fo
 
 ## Algorithms Analysis
 
-Median can be found naively by sorting the list of data and then picking its midpoint. The best comparison sort algorithm(s) have complexity `O(nlog(n))`. However, faster median algorithms, with complexity `O(n)` are possible. They are based on the observation that not all data need to be sorted, only partitioned and counted off. Therefore, the sort method can not compete, as is demonstrated by the tests. It has been deleted as of version 2.0.0.
+Simple primitive types are best dealt with by extra fast radix search. We have implemented it for `u8`, other primitive types to follow soon:
 
-Currently considered to be the 'state of the art' algorithm is Floyd-Rivest (1975) Median of Medians. This divides the data into groups of five items, finds a median of each group and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. Such  pivot is guaranteed to produce 'pretty good' partitioning, though not necessarily perfect, so iteration is necessary.
+```rust
+/// Median of primitive type u8 by fast radix search
+pub fn medianu8( s:&[u8] ) -> Result<f64, Me> { ... }
+```
 
-However, to find the best pivot is not the main overall objective. Rather, it is to eliminate (count off) eccentric data items as fast as possible. Therefore, the expense of choosing the pivot must be considered. It is possible to allow less optimal pivots, as we do here and yet, on average, to find the median faster.
+More complex types require general comparison search. Median can be found naively by sorting the list of data and then picking its midpoint. The best comparison sort algorithm(s) have complexity `O(nlog(n))`. However, faster median algorithms, with complexity `O(n)` are possible. They are based on the observation that not all data need to be sorted, only partitioned and counted off. Therefore, the sort method can not compete, as is demonstrated by the tests. It has been deleted as of version 2.0.0.
 
-Let our average ratio of items remaining after one partitioning be rs and the Floyd-Rivest be rf. Where `1/2 <= rf <= rs < 1` and rf is more optimal, being nearer to the perfect ratio `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `rs^2 < rf`, which is entirely possible and seems to be confirmed in practice. For example, `rf=0.65` (nearly optimal), `rs=0.8` (deeply suboptimal), yet `rs^2 < rf`.
+Currently considered to be the 'state of the art' comparison algorithm is Floyd-Rivest (1975) Median of Medians. This divides the data into groups of five items, finds a median of each group by sort and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. Such pivot is guaranteed to produce 'pretty good' partitioning, though not necessarily perfect, so iteration is still necessary.
+
+To find the best pivot is not the main overall objective. Rather, it is to eliminate (count off) eccentric data items as fast as possible. Therefore, the expense of choosing the pivot must be considered. It is possible to allow less optimal pivots, as we do here and yet, on average, to find the median faster.
+
+Let our average ratio of items remaining after one partitioning be `rs` and the Floyd-Rivest's be `rf`. Typically, `1/2 <= rf <= rs < 1`, i.e. `rf` is more optimal, being nearer to the perfect partitioning ratio `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `rs^2 < rf`, which is entirely possible and seems to be confirmed in practice. For example, `rf=0.65` (nearly optimal), `rs=0.8` (deeply suboptimal), yet `rs^2 < rf`.
 
 The main features of our median algorithm are:
 
 * Linear complexity.
-* Fast (in place) iterative partitioning into three subranges (lesser,equal,greater), minimising data movements and memory management.
-* Simple pivot selection strategy. We define the `middling` value of a sample of four as one of the middle pair of sorted items. Whereas full sort of four items takes at least five comparisons, we only need three. A `middling` pivot is enough to guarantee convergence of iterative schemes, such as the search for the median. Also, poor pivots are unlikely to be picked repeatedly.
+* Fast (in-place) iterative partitioning into three subranges (lesser,equal,greater), minimising data movements and memory management.
+* Simple pivot selection strategy. We define the `middling` value of a sample of four as one of the middle pair of items in order. Whereas full (merge) sort of four items takes five comparisons, we only need three. A `middling` pivot is enough to guarantee convergence of iterative schemes, such as the search for the median. Also, poor pivots are unlikely to be picked repeatedly.
 
 ## Trait Medianf64
 
@@ -60,7 +67,8 @@ Most of its methods take a quantify closure `q`, which converts its generic argu
 
 Weaker partial ordinal comparison is used instead of numerical comparison. The search algorithm remains the same. The only additional cost is the extra layer of referencing to prevent the copying of data.
 
-**`median_by()`**  
+**`median_by()`**
+
 For all end-types quantifiable to f64, we simply averaged the two midpoints of even length data to obtain a single median (of type `f64`). When the data items are unquantifiable to `f64`, this is no longer possible. Then `median_by` should be used. It returns both middle values within `Medians` enum type, the lesser one first:
 
 ```rust
@@ -101,9 +109,11 @@ pub trait Median<'a, T> {
 
 ## Release Notes
 
+**Version 3.0.2** - Added function `medianu8` that finds median byte by superfast radix search. More primitive types to follow.
+
 **Version 3.0.1** - Renamed `correlation` to `med_correlation` to avoid name clashes elsewhere.
 
-**Version 3.0.0** - Numerous improvements to speed and generality and renaming. 
+**Version 3.0.0** - Numerous improvements to speed and generality and renaming.
 
 **Version 2.3.1** - Further speed optimisation of `partf64`.
 
