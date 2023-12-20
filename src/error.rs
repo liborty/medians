@@ -1,8 +1,6 @@
 use std::error::Error;
 use std::fmt;
 use std::fmt::{Debug, Display};
-use crate::Me;
-use ran::Re;
 
 #[derive(Debug)]
 /// custom error
@@ -30,20 +28,13 @@ where
     }
 }
 
-/// Automatically converting RanError<String> to MedError::OtherError<String>
-impl From<Re> for Me {
-    fn from(e: Re) -> Self {
-        MedError::Other(format!("RanError: {e}"))
-    }
-}
-
-/// Convenience function for building RanError<String>  
+/// Convenience function for building MedError<String>  
 /// from error kind name and payload message, which can be either &str or String
-pub fn merror(kind: &str, msg: impl Into<String>) -> Me {
+pub fn merror<T>(kind: &str, msg: impl Into<String>) -> Result<T,MedError<String>> {
     match kind {
-        "size" => MedError::Size(msg.into()),
-        "nan" => MedError::Nan(msg.into()), 
-        "other" => MedError::Other(msg.into()),
-        _ => MedError::Other("Wrong error kind given to merror".into())
+        "size" => Err(MedError::Size(msg.into())),
+        "nan" => Err(MedError::Nan(msg.into())), 
+        "other" => Err(MedError::Other(msg.into())),
+        _ => Err(MedError::Other("Wrong error kind given to merror".into()))
     }
 }

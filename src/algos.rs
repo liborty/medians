@@ -4,7 +4,7 @@ use std::ops::Range;
 
 const FSIGN: u64 = 0x8000_0000_0000_0000;
 
-/// Tests a slice of f64s for the presence of NANs
+/// Scan a slice of f64s for being free of NANs
 pub fn no_nans(v: &[f64]) -> bool {
     for &f in v {
         if f.is_nan() {
@@ -56,30 +56,96 @@ pub fn ref_vec<T>(v: &[T], rng: Range<usize>) -> Vec<&T> {
     v.iter().take(rng.end).skip(rng.start).collect()
 }
 
-/// Insert logsort of refs within [&T].
-/// Use for large types T, as they do not get copied here.
+/// Builds Vec<T> from refs in Vec<&T> (inverse of ref_vec())
+pub fn deref_vec<T>(v: &[&T]) -> Vec<T> 
+where T:Clone {
+    v.iter().map(|&x| x.clone()).collect()
+}
+
+/// Insert logsort of refs (within range).
+/// Use for large types T, they do not get copied.
 /// Pass in reversed comparator for descending sort.
-pub fn isort_refs<T>(s: &mut [&T], rng: Range<usize>, c: impl Fn(&T, &T) -> Ordering) {
-    if s.len() < 2 {
-        return;
+pub fn isort_refs<T>(s: &[T], rng: Range<usize>, c: impl Fn(&T, &T) -> Ordering) -> Vec<&T> {
+    match rng.len() {
+    0 => return vec![],
+    1 => return vec![&s[rng.start];1],
+    _ => ()
     };
-    if c(s[rng.start + 1], s[rng.start]) == Less {
-        s.swap(rng.start, rng.start + 1);
+    // build a mutable vec of refs
+    let mut rv:Vec<&T> = s.iter().take(rng.end).skip(rng.start).collect();
+    if c(rv[rng.start + 1], rv[rng.start]) == Less {
+        rv.swap(rng.start, rng.start + 1);
     };
-    for i in rng.start + 2..rng.end {
+    for i in rng.start+2..rng.end {
         // first two already swapped
-        if c(s[i], s[i - 1]) != Less {
+        if c(rv[i], rv[i - 1]) != Less {
             continue;
-        } // s[i] item is already in order
-        let thisref = s[i];
-        let insert = match s[rng.start..i - 1].binary_search_by(|&j| c(j, thisref)) {
+        } // rv[i] item is already in order
+        let thisref = rv[i];
+        let insert = match rv[rng.start..i - 1].binary_search_by(|&j| c(j, thisref)) {
             Ok(ins) => ins + 1,
             Err(ins) => ins,
         };
-        s.copy_within(insert..i, insert + 1);
-        s[insert] = thisref;
+        rv.copy_within(insert..i, insert + 1);
+        rv[insert] = thisref;
     }
+    rv
 }
+
+/// middle valued ref out of three, at most three comparisons
+pub fn midof3<'a, T>(item1: &'a T, item2: &'a T, item3: &'a T, c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T
+{
+    let (min, max) = if c(item2,item1) == Less {
+        (item2, item1)
+    } else {
+        (item1, item2)
+    };
+    if c(min,item3) != Less {
+        return min;
+    };
+    if c(item3,max) != Less {
+        return max;
+    };
+    item3
+}
+
+/*
+/// pivot estimate as recursive mid of mids of three
+pub fn midofmids<'a, T>(s: &[&T], rng: Range<usize>, c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T
+where
+    T: PartialOrd,
+{
+    if s.len() < 3 { return s[0]; };
+    for i in 
+    let (min, max) = if *item1 <= *item2 {
+        (item1, item2)
+    } else {
+        (item2, item1)
+    };
+    if *item3 <= *min {
+        return min;
+    };
+    if *item3 <= *max {
+        return item3;
+    };
+    max
+}
+
+/// Mid two values of four refs. Makes four comparisons
+fn mid2(
+    idx0: usize,
+    idx1: usize,
+    idx2: usize,
+    idx3: usize,
+    c: &mut impl FnMut(usize, usize) -> Ordering,
+) -> (usize,usize) {
+    let (min1,max1) = if c(idx0, idx1) == Less { (idx0,idx1) } else { (idx1,idx0) };
+    let (min2,max2) = if c(idx2, idx3) == Less { (idx2,idx3) } else { (idx3,idx2) };
+    let mid1 = if c(min1, min2) == Less { min2 } else { min1 };
+    let mid2 = if c(max1, max2) == Less { max1 } else { max2 };
+    (mid1,mid2)
+}
+*/
 
 /// Index of the middling value of four refs. Makes only three comparisons
 fn middling(
@@ -236,6 +302,47 @@ pub fn evenmedianu8(s: &[u8]) -> f64 {
     if  res == f64::MIN { resbucket as f64 } else { (res + resbucket as f64)/ 2.0 } 
 }
 
+/// Odd median of `&[u16]`
+pub fn oddmedianu16(s: &[u16]) -> f64 {
+    let need = s.len() / 2; // median target position
+    let mut histogram = [0_usize; 65536];
+    let mut cummulator = 0_usize;
+    let mut resbucket = 0_u16;
+    for &u in s.iter() {
+        histogram[u as usize] += 1;
+    };
+    for &hist in histogram.iter() {
+        cummulator += hist;
+        if need < cummulator { break; };
+        resbucket += 1;
+    };
+    resbucket as f64
+}
+
+/// Even median of `&[u16]`
+pub fn evenmedianu16(s: &[u16]) -> f64 {
+    let mut need = s.len() / 2; // first median target position
+    let mut histogram = [0_usize; 65536];
+    let mut cummulator = 0_usize;
+    let mut resbucket = 0_u16;
+    let mut res = f64::MIN;
+    for &u in s.iter() {
+        histogram[u as usize] += 1;
+    }
+    for &hist in histogram.iter() {
+        cummulator += hist; 
+        if need < cummulator { break; }; // cummulator exceeds need, found at least two items
+        if need == cummulator { // the last (possibly only) item in this bucket
+            if res == f64::MIN { // is the first median
+                res = resbucket as f64; // save it
+                need += 1; // next look for the second one (in the following buckets)
+            } else { break; }; // this item is already the second median
+        };
+        resbucket += 1;
+        continue;
+    };
+    if  res == f64::MIN { resbucket as f64 } else { (res + resbucket as f64)/ 2.0 } 
+}
 /// Median of odd sized generic data with Odering comparisons by custom closure
 pub fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
     let mut rng = 0..s.len();
@@ -337,178 +444,3 @@ pub fn evenmedian_by<'a, T>(
         rng.start = gtsub;
     }
 }
-
-/*
-/// Partitions mutable set s within rng by pivot value.
-/// The reordering is done in a single pass, with minimal comparisons.
-/// Returns a triple of subscripts to new s: `(gtstart, mid, ltend)`.
-/// The count of items equal to pivot is: `(gtstart-rng.start) + (rng.end-ltend)`.
-/// Items greater than pivot are in range (gtstart,mid)
-/// Items less than pivot are in range (mid,ltend).
-/// Any of these four resulting sub-slices may be empty.
-pub fn part<T>(s: &mut [&T], rng: &Range<usize>, pivot: &T) -> (usize, usize, usize)
-where
-    T: PartialOrd,
-{
-    let mut startsub = rng.start;
-    let mut gtsub = startsub;
-    let mut ltsub = rng.end - 1;
-    let mut endsub = rng.end - 1;
-    loop {
-        while s[gtsub] > pivot {
-            if gtsub == ltsub {
-                return (startsub, 1 + gtsub, 1 + endsub);
-            };
-            gtsub += 1;
-        }
-        if s[gtsub] == pivot {
-            s[gtsub] = s[startsub];
-            if gtsub == ltsub {
-                return (1 + startsub, 1 + gtsub, 1 + endsub);
-            };
-            startsub += 1;
-            gtsub += 1;
-            continue;
-        };
-        'lt: loop {
-            if s[ltsub] < pivot {
-                ltsub -= 1;
-                // s[gtsub] here is already known to be lt pivot, so assign it to lt set
-                if gtsub >= ltsub {
-                    return (startsub, gtsub, 1 + endsub);
-                };
-                continue 'lt;
-            }
-            if s[ltsub] == pivot {
-                s[ltsub] = s[endsub];
-                ltsub -= 1;
-                if gtsub >= ltsub {
-                    return (startsub, gtsub, endsub);
-                };
-                endsub -= 1;
-                continue 'lt;
-            };
-            break 'lt;
-        }
-        s.swap(ltsub, gtsub);
-        gtsub += 1;
-        ltsub -= 1;
-        if gtsub > ltsub {
-            return (startsub, gtsub, 1 + endsub);
-        };
-    }
-}
-
-/// Median of odd sized generic data with Odering comparisons by custom closure
-pub fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
-{
-    let mut rng = 0..set.len();
-    let mut need = set.len() / 2; // need as subscript
-    let mut s: Vec<&T> = set.iter().collect();
-    loop {
-        // Take a sample from start,mid,end of data and use their midpoint as a pivot
-        let pivot = part_sort4(&mut[s[rng.start],s[rng.start+1],s[rng.end-2],s[rng.end-1]],c);
-        let (gtsub, ltsub, ltend) = part(&mut s, &rng, pivot);
-        // somewhere within ltset, iterate on it
-        if need + ltsub - rng.start + 2 < ltend {
-            need += ltsub - rng.start;
-            rng.start = ltsub;
-            rng.end = ltend;
-            continue;
-        }
-        // when need is within reach of the end of ltset, we have a solution:
-        if need + ltsub - rng.start < rng.end {
-            // jump over geset, which was placed at the beginning
-            need += ltsub - rng.start;
-            if need + 2 == ltend {
-                return max2(&s, ltsub..ltend).0;
-            };
-            if need + 1 == ltend {
-                return max(&s, ltsub..ltend);
-            };
-            // else need is in the end equals set (need >= ltend)
-            return pivot;
-        };
-        // geset was placed at the beginning, so reduce need by leset
-        need -= rng.end - ltsub;
-        // somewhere within gtset, iterate on it
-        if need > gtsub+1 {
-            rng.start = gtsub;
-            rng.end = ltsub;
-            continue;
-        }
-        // here need is within reach of the beginning of the ge set, we have a solution:
-        // does it fall within the first equals set?
-        if need < gtsub {
-            return pivot;
-        };
-        if need == gtsub {
-            return min(&s, gtsub..ltsub);
-        };
-        // else need == gtsub + 1
-        return min2(&s, gtsub..ltsub).1;
-    }
-}
-
-/// Median of even sized generic data with Odering comparisons by custom closure
-pub fn evenmedian_by<'a, T>(
-    s: &mut [&'a T],
-    c: &mut impl FnMut(&T, &T) -> Ordering,
-) -> (&'a T, &'a T) {
-    let mut rng = 0..set.len();
-    let mut need = set.len() / 2 - 1; // need as subscript - 1
-    let mut s: Vec<&T> = set.iter().collect();
-    loop {
-        let pivot = part_sort4(&mut[s[rng.start],s[rng.start+1],s[rng.end-2],s[rng.end-1]],c);
-        // let pivot = midof3(s[rng.start], s[(rng.start + rng.end) / 2], s[rng.end - 1]);
-        let (gtsub, ltsub, ltend) = part(&mut s, &rng, pivot);
-        // need falls somewhere within ltset, iterate on it
-        if need + ltsub - rng.start + 2 < ltend {
-                need += ltsub - rng.start;
-                rng.start = ltsub;
-                rng.end = ltend;
-                continue;
-        };
-        // if need is within reach of the end of ltset, we have a solution:
-        if need + ltsub - rng.start < rng.end {
-            // jump over geset, which was placed at the beginning
-            need += ltsub - rng.start;
-            if need + 2 == ltend {
-                return max2(&s, ltsub..ltend);
-            };
-            // there will always be at least one item equal to pivot and therefore it is the minimum of the ge set
-            if need + 1 == ltend {
-                return (max(&s, ltsub..ltend), pivot);
-            };
-            // need is within the equals sets (need >= ltend)
-            let eqend = rng.end-1+gtsub-rng.start;
-            if need < eqend { return (pivot,pivot); };
-            if need == eqend {
-                if gtsub > rng.start { return (pivot,pivot); }
-                else { return (pivot,min(&s, gtsub..ltsub)); }
-            };
-        };
-        // geset was placed at the beginning, so reduce need by leset
-        need -= rng.end - ltsub;
-        // somewhere within gtset, iterate on it
-        if need+1 > gtsub {
-            rng.start = gtsub;
-            rng.end = ltsub;
-            continue;
-        };
-        // need is within reach of the beginning of the ge set, we have a solution:
-        // is need in the first equals set?
-        if need+1 < gtsub {
-            return (pivot,pivot);
-        };
-        // last of the first equals set
-        if need+1 == gtsub {
-            return (pivot, min(&s, gtsub..ltsub));
-        };
-        // first of the gtset
-        if need == gtsub {
-            return min2(&s, gtsub..ltsub);
-        };
-    }
-}
-*/

@@ -1,4 +1,4 @@
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
 // #![feature(slice_swap_unchecked)]
 
 //! Fast new algorithms for computing medians of
@@ -12,7 +12,7 @@ pub mod algos;
 pub mod error;
 
 use crate::algos::*;
-use crate::error::{merror, MedError};
+pub use crate::error::{merror, MedError};
 
 use core::{cmp::Ordering, fmt::Display};
 use indxvec::printing::{GR, UN, YL};
@@ -47,7 +47,7 @@ where
 pub fn medianu8(s:&[u8]) -> Result<f64, Me> {
     let n = s.len();
     match n {
-        0 => return Err(merror("size", "median: zero length data")),
+        0 => return merror("size", "median: zero length data")?,
         1 => return Ok(s[0] as f64),
         2 => return Ok((s[0] as f64 + s[1] as f64) / 2.0),
         _ => (),
@@ -59,6 +59,21 @@ pub fn medianu8(s:&[u8]) -> Result<f64, Me> {
     }
 }
 
+/// Median of primitive type u16 by fast radix search
+pub fn medianu16(s:&[u16]) -> Result<f64, Me> {
+    let n = s.len();
+    match n {
+        0 => return merror("size", "median: zero length data"),
+        1 => return Ok(s[0] as f64),
+        2 => return Ok((s[0] as f64 + s[1] as f64) / 2.0),
+        _ => (),
+    };
+    if (n & 1) == 1 {
+        Ok(oddmedianu16(s))
+    } else {
+        Ok(evenmedianu16(s))
+    }
+}
 /// Fast 1D medians of floating point data, plus related methods
 pub trait Medianf64 {
     /// Median of f64s, checked for NaNs
@@ -102,7 +117,7 @@ impl Medianf64 for &[f64] {
     fn medf_checked(self) -> Result<f64, Me> {
         let n = self.len();
         match n {
-            0 => return Err(merror("size", "medf_checked: zero length data")),
+            0 => return merror("size", "medf_checked: zero length data"),
             1 => return Ok(self[0]),
             2 => return Ok((self[0] + self[1]) / 2.0),
             _ => (),
@@ -111,7 +126,7 @@ impl Medianf64 for &[f64] {
             .iter()
             .map(|x| {
                 if x.is_nan() {
-                    Err(merror("Nan", "medf_checked: Nan in input!"))
+                    merror("Nan", "medf_checked: Nan in input!")
                 } else {
                     Ok(x)
                 }
@@ -170,7 +185,7 @@ impl Medianf64 for &[f64] {
             .sum();
         let res = sxy / (sx2 * sy2).sqrt();
         if res.is_nan() {
-            Err(merror("Nan", "medf_correlation: Nan result!"))
+            merror("Nan", "medf_correlation: Nan result!")
         } else {
             Ok(res)
         }
@@ -201,7 +216,7 @@ impl<'a, T> Median<'a, T> for &'a [T] {
     ) -> Result<f64, Me> {
         let n = self.len();
         match n {
-            0 => return Err(merror("size", "qmedian_by: zero length data")),
+            0 => return merror("size", "qmedian_by: zero length data"),
             1 => return Ok(q(&self[0])),
             2 => return Ok((q(&self[0]) + q(&self[1])) / 2.0),
             _ => (),
@@ -219,7 +234,7 @@ impl<'a, T> Median<'a, T> for &'a [T] {
     fn median_by(self, c: &mut impl FnMut(&T, &T) -> Ordering) -> Result<Medians<'a, T>, Me> {
         let n = self.len();
         match n {
-            0 => return Err(merror("size", "median_ord: zero length data")),
+            0 => return merror("size", "median_ord: zero length data"),
             1 => return Ok(Medians::Odd(&self[0])),
             2 => return Ok(Medians::Even((&self[0], &self[1]))),
             _ => (),
@@ -271,7 +286,7 @@ impl<'a, T> Median<'a, T> for &'a [T] {
             .sum();
         let res = sxy / (sx2 * sy2).sqrt();
         if res.is_nan() {
-            Err(merror("Nan", "correlation: Nan result!"))
+            merror("Nan", "correlation: Nan result!")
         } else {
             Ok(res)
         }

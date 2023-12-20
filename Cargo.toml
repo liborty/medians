@@ -1,6 +1,6 @@
 [package]
 name = "medians"
-version = "3.0.2"
+version = "3.0.3"
 authors = ["Libor Spacek"]
 edition = "2021"
 description = "Median, Statistical Measures, Mathematics, Statistics"
@@ -19,11 +19,14 @@ include = [
     "README.md",
     "LICENSE"
 ]
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
 [badges]
 maintenance = { status = "actively-developed" }
 [lib]
 [dependencies]
 indxvec = "1.8"
-ran = "1.1"
 [dev-dependencies]
+ran = "2.0"
 times = "1.0"

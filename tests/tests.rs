@@ -2,14 +2,16 @@
 #![allow(dead_code)]
 #[cfg(test)]
 use indxvec::{here, printing::*, Indices, Mutops, Printing, Vecops};
-use medians::algos::{scrub_nans, to_u64s, to_f64s, qbalance, part, ref_vec, min, min2, isort_refs};
+use medians::algos::{scrub_nans, to_u64s, to_f64s, qbalance, part, ref_vec, deref_vec, min, min2, isort_refs};
 // use medians::algosf64::partord;
-use medians::{Me, medianu8, Median, Medianf64};
-use ran::{generators::*, *};
+use medians::{Me, merror, medianu8, Median, Medianf64};
+use ran:: *;
 // use std::io::{stdout,Write};
 use std::convert::From;
+use std::error::Error;
 use core::cmp::{Ordering,Ordering::*};
 use times::{benchf64, benchu64, benchu8, mutbenchf64};
+
 
 #[test]
 fn parting() -> Result<(), Me> {
@@ -37,8 +39,8 @@ fn parting() -> Result<(), Me> {
         (gtsub - eqsub).yl(),
         data[0].yl()
     );
-    refdata.mutisort(0..len, |a,b| a.total_cmp(b) );
-    println!("isort_copy ascending sorted:\n{}",refdata.gr());
+    let refindex = isort_refs(&data,0..len, |a,b| a.total_cmp(b));
+    println!("isort_refs ascending sorted:\n{}",deref_vec(&refindex).gr());
     let indx = data.isort_indexed(0..len, |a,b| b.total_cmp(a));
     println!("isort_index (descending):\n{}",indx.gr());
     println!("Unindexed:\n{}",indx.unindex(&data,true).gr());
@@ -99,9 +101,8 @@ fn medf64() {
 
 #[test]
 fn correlation() -> Result<(), Me> {
-    let rv = Rnum::newf64();
-    let v1 = rv.ranv(100).expect("Random vec genertion failed").getvf64()?; // random vector
-    let v2 = rv.ranv(100).expect("Random vec genertion failed").getvf64()?; // random vector
+    let v1 = ranv_f64(100).expect("Random vec1 generation failed"); // random vector
+    let v2 = ranv_f64(100).expect("Random vec2 generation failed"); // random vector
     println!("medf_correlation: {}",v1.medf_correlation(&v2)?.gr());
     Ok(())
 }
@@ -110,23 +111,22 @@ fn correlation() -> Result<(), Me> {
 fn errors() -> Result<(), Me> {
     let n = 10_usize; // number of vectors to test for each magnitude
     // set_seeds(33333);
-    let rv = Rnum::newu8();
     for d in [10, 50, 100, 1000, 10000, 100000] {
         let mut error = 0_i64;
         trait Eq: PartialEq<Self> {}
         impl Eq for f64 {}
         for _ in 0..n {
-            let v = rv.ranv(d).expect("Random vec genertion failed").getvu8()?; // random vector
-            let med = medianu8(&v)?;
-            // v
-                //.as_slice()
-                //.medf_unchecked();
+            let Ok(v) = ranv_u8(d) else {
+                return merror("other","Random vec genertion failed"); };
+            let med = medianu8(&v)?; // random vector
+            // v.as_slice().medf_unchecked();
             error += qbalance(&v, &med,  |&f| f as f64);
         }
         println!("Even length {GR}{d}{UN}, repeats: {GR}{n}{UN}, errors: {GR}{error}{UN}");
         error = 0_i64;
         for _ in 0..n {
-            let v = rv.ranv(d + 1).expect("Random vec genertion failed").getvu8()?; // random vector
+            let Ok(v) = ranv_u8(d + 1) else {
+                return merror("other","Random vec genertion failed"); }; // random vector
             let med = medianu8(&v)?;
             // v
             //    .as_slice()
@@ -179,5 +179,5 @@ const CLOSURESU8: [fn(&[u8]); 4] = [
 fn comparison() {
     // set_seeds(0); // intialise random numbers generator
     // Rnum encapsulates the type of random data to be generated
-    benchu8(Rnum::newu8(), 2..5000, 100, 10, &NAMES, &CLOSURESU8);
+    benchu8(3..5000, 100, 10, &NAMES, &CLOSURESU8);
 }

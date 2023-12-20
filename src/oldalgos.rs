@@ -112,6 +112,66 @@ pub fn ord_vec<T>(v: &[T]) -> Vec<Ordered<&T>> {
 }
 
 /*
+/// Partitions mutable set s within rng by pivot value.
+/// The reordering is done in a single pass, with minimal comparisons.
+/// Returns a triple of subscripts to new s: `(gtstart, mid, ltend)`.
+/// The count of items equal to pivot is: `(gtstart-rng.start) + (rng.end-ltend)`.
+/// Items greater than pivot are in range (gtstart,mid)
+/// Items less than pivot are in range (mid,ltend).
+/// Any of these four resulting sub-slices may be empty.
+pub fn part<T>(s: &mut [&T], rng: &Range<usize>, pivot: &T) -> (usize, usize, usize)
+where
+    T: PartialOrd,
+{
+    let mut startsub = rng.start;
+    let mut gtsub = startsub;
+    let mut ltsub = rng.end - 1;
+    let mut endsub = rng.end - 1;
+    loop {
+        while s[gtsub] > pivot {
+            if gtsub == ltsub {
+                return (startsub, 1 + gtsub, 1 + endsub);
+            };
+            gtsub += 1;
+        }
+        if s[gtsub] == pivot {
+            s[gtsub] = s[startsub];
+            if gtsub == ltsub {
+                return (1 + startsub, 1 + gtsub, 1 + endsub);
+            };
+            startsub += 1;
+            gtsub += 1;
+            continue;
+        };
+        'lt: loop {
+            if s[ltsub] < pivot {
+                ltsub -= 1;
+                // s[gtsub] here is already known to be lt pivot, so assign it to lt set
+                if gtsub >= ltsub {
+                    return (startsub, gtsub, 1 + endsub);
+                };
+                continue 'lt;
+            }
+            if s[ltsub] == pivot {
+                s[ltsub] = s[endsub];
+                ltsub -= 1;
+                if gtsub >= ltsub {
+                    return (startsub, gtsub, endsub);
+                };
+                endsub -= 1;
+                continue 'lt;
+            };
+            break 'lt;
+        }
+        s.swap(ltsub, gtsub);
+        gtsub += 1;
+        ltsub -= 1;
+        if gtsub > ltsub {
+            return (startsub, gtsub, 1 + endsub);
+        };
+    }
+}
+
 /// Subscripts of minimum and maximum locations within rng in slice s
 pub fn minmax<T>(
     s: &[T],
