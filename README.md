@@ -109,6 +109,8 @@ pub trait Median<'a, T> {
 
 ## Release Notes
 
+**Version 3.0.4** - Some minor code simplifications.
+
 **Version 3.0.3** - Updated dev dependency `ran` to 2.0.
 
 **Version 3.0.2** - Added function `medianu8` that finds median byte by superfast radix search. More primitive types to follow.

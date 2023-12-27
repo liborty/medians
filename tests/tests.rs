@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #[cfg(test)]
 use indxvec::{here, printing::*, Indices, Mutops, Printing, Vecops};
-use medians::algos::{scrub_nans, to_u64s, to_f64s, qbalance, part, ref_vec, deref_vec, min, min2, isort_refs};
+use medians::algos::{scrub_nans, to_u64s, to_f64s, qbalance, part, ref_vec, deref_vec, min, min2};
 // use medians::algosf64::partord;
 use medians::{Me, merror, medianu8, Median, Medianf64};
 use ran:: *;
@@ -11,7 +11,6 @@ use std::convert::From;
 use std::error::Error;
 use core::cmp::{Ordering,Ordering::*};
 use times::{benchf64, benchu64, benchu8, mutbenchf64};
-
 
 #[test]
 fn parting() -> Result<(), Me> {
@@ -39,7 +38,7 @@ fn parting() -> Result<(), Me> {
         (gtsub - eqsub).yl(),
         data[0].yl()
     );
-    let refindex = isort_refs(&data,0..len, |a,b| a.total_cmp(b));
+    let refindex = data.isort_refs(0..len, |a,b| a.total_cmp(b));
     println!("isort_refs ascending sorted:\n{}",deref_vec(&refindex).gr());
     let indx = data.isort_indexed(0..len, |a,b| b.total_cmp(a));
     println!("isort_index (descending):\n{}",indx.gr());
@@ -141,15 +140,14 @@ fn errors() -> Result<(), Me> {
     Ok(())
 }
 
-const NAMES: [&str; 4] = [
+const NAMES: [&str; 3] = [
  //  "medf_unchecked",
    "qmedian",
-   "median_by",
-   "mutisort",
+   "median_by", 
    "medianu8" 
 ];
 
-const CLOSURESU8: [fn(&[u8]); 4] = [
+const CLOSURESU8: [fn(&[u8]); 3] = [
 //    |v: &[_]| {
 //        v.medf_unchecked();
 //   },
@@ -164,10 +162,6 @@ const CLOSURESU8: [fn(&[u8]); 4] = [
     |v: &[_]| {
         v.median_by(&mut <u8>::cmp)
             .expect("even median closure failed");
-    },
-    |v: &[_]| {
-        let mut vm = v.to_owned();
-        vm.mutisort( 0..v.len(), |a:&u8,b| a.cmp(b));// |a:&f64,b:&f64| a.total_cmp(b));
     },
     |v: &[_]| {
         medianu8(v)

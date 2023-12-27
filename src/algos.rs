@@ -23,7 +23,7 @@ pub fn scrub_nans(v: &[f64]) -> Vec<f64> {
     //        Err(merror("nan", "median_checked: NaN encountered in data"))
 }
 
-/// Converts f64s to &u64s, so that sort order is preserved
+/// Converts f64s to &u64s, so that sort order is preserved, including NANs and all
 pub fn to_u64s(v: &[f64]) -> Result<Vec<u64>, Me> {
     v.iter()
         .map(|f| {
@@ -38,7 +38,7 @@ pub fn to_u64s(v: &[f64]) -> Result<Vec<u64>, Me> {
         .collect()
 }
 
-/// Converts f64s to &u64s, so that sort order is preserved
+/// Converts f64s to &u64s (inverse of `to_u64s`.
 pub fn to_f64s(v: &[u64]) -> Vec<f64> {
     v.iter()
         .map(|&u| {
@@ -57,53 +57,29 @@ pub fn ref_vec<T>(v: &[T], rng: Range<usize>) -> Vec<&T> {
 }
 
 /// Builds Vec<T> from refs in Vec<&T> (inverse of ref_vec())
-pub fn deref_vec<T>(v: &[&T]) -> Vec<T> 
-where T:Clone {
+pub fn deref_vec<T>(v: &[&T]) -> Vec<T>
+where
+    T: Clone,
+{
     v.iter().map(|&x| x.clone()).collect()
 }
 
-/// Insert logsort of refs (within range).
-/// Use for large types T, they do not get copied.
-/// Pass in reversed comparator for descending sort.
-pub fn isort_refs<T>(s: &[T], rng: Range<usize>, c: impl Fn(&T, &T) -> Ordering) -> Vec<&T> {
-    match rng.len() {
-    0 => return vec![],
-    1 => return vec![&s[rng.start];1],
-    _ => ()
-    };
-    // build a mutable vec of refs
-    let mut rv:Vec<&T> = s.iter().take(rng.end).skip(rng.start).collect();
-    if c(rv[rng.start + 1], rv[rng.start]) == Less {
-        rv.swap(rng.start, rng.start + 1);
-    };
-    for i in rng.start+2..rng.end {
-        // first two already swapped
-        if c(rv[i], rv[i - 1]) != Less {
-            continue;
-        } // rv[i] item is already in order
-        let thisref = rv[i];
-        let insert = match rv[rng.start..i - 1].binary_search_by(|&j| c(j, thisref)) {
-            Ok(ins) => ins + 1,
-            Err(ins) => ins,
-        };
-        rv.copy_within(insert..i, insert + 1);
-        rv[insert] = thisref;
-    }
-    rv
-}
-
 /// middle valued ref out of three, at most three comparisons
-pub fn midof3<'a, T>(item1: &'a T, item2: &'a T, item3: &'a T, c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T
-{
-    let (min, max) = if c(item2,item1) == Less {
+pub fn midof3<'a, T>(
+    item1: &'a T,
+    item2: &'a T,
+    item3: &'a T,
+    c: &mut impl FnMut(&T, &T) -> Ordering,
+) -> &'a T {
+    let (min, max) = if c(item2, item1) == Less {
         (item2, item1)
     } else {
         (item1, item2)
     };
-    if c(min,item3) != Less {
+    if c(min, item3) != Less {
         return min;
     };
-    if c(item3,max) != Less {
+    if c(item3, max) != Less {
         return max;
     };
     item3
@@ -116,7 +92,7 @@ where
     T: PartialOrd,
 {
     if s.len() < 3 { return s[0]; };
-    for i in 
+    for i in
     let (min, max) = if *item1 <= *item2 {
         (item1, item2)
     } else {
@@ -214,11 +190,11 @@ pub fn qbalance<T>(s: &[T], centre: &f64, q: impl Fn(&T) -> f64) -> i64 {
     let mut eq = 0_i64;
     for si in s {
         match &q(si).total_cmp(centre) {
-            Less => bal -= 1, 
+            Less => bal -= 1,
             Greater => bal += 1,
             _ => eq += 1,
         };
-    };
+    }
     if bal == 0 {
         return 0;
     };
@@ -228,8 +204,9 @@ pub fn qbalance<T>(s: &[T], centre: &f64, q: impl Fn(&T) -> f64) -> i64 {
     1
 }
 
-/// Partitions `s: &mut [&T]` within range `rng` by pivot, which is the first item: `s[rng.start]`.  
-/// The three resulting partitions are divided by eqstart,gtstart, where:  
+/// Partitions `s: &mut [&T]` within range `rng`, using comparator `c`.  
+/// The first item `s[rng.start]` is assumed to be the pivot.   
+/// The three rearranged partitions are  by eqstart,gtstart, where:  
 /// `rng.start..eqstart` (may be empty) contains refs to items lesser than the pivot,  
 /// `gtstart-eqstart` is the number (>= 1) of items equal to the pivot, values within this subrange are undefined,  
 /// `gtstart..rng.end` (may be empty) contains refs to items greater than the pivot.
@@ -265,41 +242,52 @@ pub fn oddmedianu8(s: &[u8]) -> f64 {
     let need = s.len() / 2; // median target position
     let mut histogram = [0_usize; 256];
     let mut cummulator = 0_usize;
-    let mut resbucket = 0_u8;
+    let mut res = 0_f64;
     for &u in s.iter() {
         histogram[u as usize] += 1;
-    };
-    for &hist in histogram.iter() {
+    }
+    for (i, &hist) in histogram.iter().enumerate() {
+        if hist == 0 {
+            continue;
+        };
         cummulator += hist;
-        if need < cummulator { break; };
-        resbucket += 1;
-    };
-    resbucket as f64
+        if need < cummulator {
+            res = i as f64;
+            break;
+        };
+    }
+    res
 }
 
 /// Even median of `&[u8]`
 pub fn evenmedianu8(s: &[u8]) -> f64 {
-    let mut need = s.len() / 2; // first median target position
+    let need = s.len() / 2; // first median target position
     let mut histogram = [0_usize; 256];
     let mut cummulator = 0_usize;
-    let mut resbucket = 0u8;
-    let mut res = f64::MIN;
+    let mut firstres = true;
+    let mut res = 0_f64;
     for &u in s.iter() {
         histogram[u as usize] += 1;
     }
-    for &hist in histogram.iter() {
-        cummulator += hist; 
-        if need < cummulator { break; }; // cummulator exceeds need, found at least two items
-        if need == cummulator { // the last (possibly only) item in this bucket
-            if res == f64::MIN { // is the first median
-                res = resbucket as f64; // save it
-                need += 1; // next look for the second one (in the following buckets)
-            } else { break; }; // this item is already the second median
+    for (i, &hist) in histogram.iter().enumerate() {
+        if hist == 0 {
+            continue;
         };
-        resbucket += 1;
-        continue;
+        cummulator += hist;
+        if firstres {       
+            if need < cummulator {  res = i as f64; break; }; // cummulator exceeds need, found both items
+            if need == cummulator { // found first item (last in this bucket)
+                res = i as f64;       
+                firstres = false;
+                continue; // search for the second item
+            };
+        } else { // the second item is in the first following non-zero bucket
+            res += i as f64;
+            res /= 2.0;
+            break;
+        }; // found the second
     };
-    if  res == f64::MIN { resbucket as f64 } else { (res + resbucket as f64)/ 2.0 } 
+    res
 }
 
 /// Odd median of `&[u16]`
@@ -307,42 +295,53 @@ pub fn oddmedianu16(s: &[u16]) -> f64 {
     let need = s.len() / 2; // median target position
     let mut histogram = [0_usize; 65536];
     let mut cummulator = 0_usize;
-    let mut resbucket = 0_u16;
+    let mut res = 0_f64;
     for &u in s.iter() {
         histogram[u as usize] += 1;
-    };
-    for &hist in histogram.iter() {
+    }
+    for (i, &hist) in histogram.iter().enumerate() {
+        if hist == 0 {
+            continue;
+        };
         cummulator += hist;
-        if need < cummulator { break; };
-        resbucket += 1;
-    };
-    resbucket as f64
+        if need < cummulator {
+            res = i as f64;
+            break;
+        };
+    }
+    res
 }
 
 /// Even median of `&[u16]`
 pub fn evenmedianu16(s: &[u16]) -> f64 {
-    let mut need = s.len() / 2; // first median target position
+    let need = s.len() / 2; // first median target position
     let mut histogram = [0_usize; 65536];
     let mut cummulator = 0_usize;
-    let mut resbucket = 0_u16;
+    let mut firstres = true;
     let mut res = f64::MIN;
     for &u in s.iter() {
         histogram[u as usize] += 1;
     }
-    for &hist in histogram.iter() {
-        cummulator += hist; 
-        if need < cummulator { break; }; // cummulator exceeds need, found at least two items
-        if need == cummulator { // the last (possibly only) item in this bucket
-            if res == f64::MIN { // is the first median
-                res = resbucket as f64; // save it
-                need += 1; // next look for the second one (in the following buckets)
-            } else { break; }; // this item is already the second median
+    for (i, &hist) in histogram.iter().enumerate() {
+        if hist == 0 {
+            continue;
         };
-        resbucket += 1;
-        continue;
+        cummulator += hist;
+        if firstres {       
+            if need < cummulator {  res = i as f64; break; }; // cummulator exceeds need, found both items
+            if need == cummulator { // found first item (last in this bucket)
+                res = i as f64;       
+                firstres = false;
+                continue; // search for the second item
+            };
+        } else { // the second item is in the first following non-zero bucket
+            res += i as f64;
+            res /= 2.0;
+            break;
+        }; // found the second
     };
-    if  res == f64::MIN { resbucket as f64 } else { (res + resbucket as f64)/ 2.0 } 
-}
+    res
+  }
 /// Median of odd sized generic data with Odering comparisons by custom closure
 pub fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
     let mut rng = 0..s.len();
