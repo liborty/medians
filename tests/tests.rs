@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #[cfg(test)]
 use indxvec::{here, printing::*, Indices, Mutops, Printing, Vecops};
-use medians::algos::{scrub_nans, to_u64s, to_f64s, qbalance, part, ref_vec, deref_vec, min, min2};
+use medians::algos::{qbalance, part, ref_vec, min, min2};
 // use medians::algosf64::partord;
 use medians::{Me, merror, medianu8, Median, Medianf64};
 use ran:: *;
@@ -17,9 +17,9 @@ fn parting() -> Result<(), Me> {
     let data = [
        5., 8., 7., 6., 5., 4., 3., 2., -f64::NAN, 1., 0., 1., -2., 3., 4., -5., f64::NAN, f64::NAN, 6., 7., 7.,
     ];
-    println!("To u64s: {}",to_u64s(&data)?.gr());
-    println!("To f64s: {}",to_f64s(&to_u64s(&data)?).gr());
-    println!("Scrubbed: {}", scrub_nans(&to_f64s(&to_u64s(&data)?)).gr());
+    // println!("To u64s: {}",to_u64s(&data).gr());
+    // println!("To f64s: {}",to_f64s(&to_u64s(&data)).gr());
+    // println!("Scrubbed: {}", scrub_nans(&to_f64s(&to_u64s(&data))).gr());
     let len = data.len();
     println!("Pivot {}: {}", data[0].yl(), data.gr());
     let mut refdata = ref_vec(&data, 0..len);
@@ -39,7 +39,7 @@ fn parting() -> Result<(), Me> {
         data[0].yl()
     );
     let refindex = data.isort_refs(0..len, |a,b| a.total_cmp(b));
-    println!("isort_refs ascending sorted:\n{}",deref_vec(&refindex).gr());
+    println!("isort_refs ascending sorted:\n{}",&refindex.gr());
     let indx = data.isort_indexed(0..len, |a,b| b.total_cmp(a));
     println!("isort_index (descending):\n{}",indx.gr());
     println!("Unindexed:\n{}",indx.unindex(&data,true).gr());
@@ -69,7 +69,7 @@ fn text() {
 }
 
 #[test]
-fn medf64() {
+fn medf64() -> Result<(), Me> {
     let v = [
        9., 10., 18., 17., 16., 15., 14., 1., 2., 3., 4., 5., 6., 7., 8., 17., 10., 11., 12., 13., 14., 15., 16., 18., 9.
     ];
@@ -93,9 +93,10 @@ fn medf64() {
         (gtsub - eqsub).yl(),
         v[0].yl()
     );
-    let median = v.medf_unchecked();
+    let median = v.medf_checked()?;
     let mad = v.madf(median);
     println!("\nMedian±mad: {GR}{}±{}{UN}", median, mad);
+    Ok(())
 }
 
 #[test]
@@ -144,7 +145,7 @@ const NAMES: [&str; 3] = [
  //  "medf_unchecked",
    "qmedian",
    "median_by", 
-   "medianu8" 
+   "medianu8"
 ];
 
 const CLOSURESU8: [fn(&[u8]); 3] = [
@@ -166,7 +167,7 @@ const CLOSURESU8: [fn(&[u8]); 3] = [
     |v: &[_]| {
         medianu8(v)
             .expect("medianu8 closure failed");
-    },
+    }
 ];
 
 #[test]

@@ -1,127 +1,10 @@
-use crate::Me;
 use core::cmp::{Ordering, Ordering::*};
 use std::ops::Range;
-
-const FSIGN: u64 = 0x8000_0000_0000_0000;
-
-/// Scan a slice of f64s for being free of NANs
-pub fn no_nans(v: &[f64]) -> bool {
-    for &f in v {
-        if f.is_nan() {
-            return false;
-        };
-    }
-    true
-}
-
-/// Copies a slice of f64s, removing any NANs from it.
-/// It is advisable to test with `non_nans` first, as there may be none
-pub fn scrub_nans(v: &[f64]) -> Vec<f64> {
-    v.iter()
-        .filter_map(|&f| if f.is_nan() { None } else { Some(f) })
-        .collect::<Vec<f64>>()
-    //        Err(merror("nan", "median_checked: NaN encountered in data"))
-}
-
-/// Converts f64s to &u64s, so that sort order is preserved, including NANs and all
-pub fn to_u64s(v: &[f64]) -> Result<Vec<u64>, Me> {
-    v.iter()
-        .map(|f| {
-            let mut u: u64 = f.to_bits();
-            if (u >> 63) == 1 {
-                u ^= FSIGN;
-            } else {
-                u = !u;
-            };
-            Ok(u)
-        })
-        .collect()
-}
-
-/// Converts f64s to &u64s (inverse of `to_u64s`.
-pub fn to_f64s(v: &[u64]) -> Vec<f64> {
-    v.iter()
-        .map(|&u| {
-            if (u >> 63) == 1 {
-                f64::from_bits(!u)
-            } else {
-                f64::from_bits(u ^ FSIGN)
-            }
-        })
-        .collect()
-}
 
 /// Constructs ref wrapped `Vec<&T>` from `&[T] in rng`
 pub fn ref_vec<T>(v: &[T], rng: Range<usize>) -> Vec<&T> {
     v.iter().take(rng.end).skip(rng.start).collect()
 }
-
-/// Builds Vec<T> from refs in Vec<&T> (inverse of ref_vec())
-pub fn deref_vec<T>(v: &[&T]) -> Vec<T>
-where
-    T: Clone,
-{
-    v.iter().map(|&x| x.clone()).collect()
-}
-
-/// middle valued ref out of three, at most three comparisons
-pub fn midof3<'a, T>(
-    item1: &'a T,
-    item2: &'a T,
-    item3: &'a T,
-    c: &mut impl FnMut(&T, &T) -> Ordering,
-) -> &'a T {
-    let (min, max) = if c(item2, item1) == Less {
-        (item2, item1)
-    } else {
-        (item1, item2)
-    };
-    if c(min, item3) != Less {
-        return min;
-    };
-    if c(item3, max) != Less {
-        return max;
-    };
-    item3
-}
-
-/*
-/// pivot estimate as recursive mid of mids of three
-pub fn midofmids<'a, T>(s: &[&T], rng: Range<usize>, c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T
-where
-    T: PartialOrd,
-{
-    if s.len() < 3 { return s[0]; };
-    for i in
-    let (min, max) = if *item1 <= *item2 {
-        (item1, item2)
-    } else {
-        (item2, item1)
-    };
-    if *item3 <= *min {
-        return min;
-    };
-    if *item3 <= *max {
-        return item3;
-    };
-    max
-}
-
-/// Mid two values of four refs. Makes four comparisons
-fn mid2(
-    idx0: usize,
-    idx1: usize,
-    idx2: usize,
-    idx3: usize,
-    c: &mut impl FnMut(usize, usize) -> Ordering,
-) -> (usize,usize) {
-    let (min1,max1) = if c(idx0, idx1) == Less { (idx0,idx1) } else { (idx1,idx0) };
-    let (min2,max2) = if c(idx2, idx3) == Less { (idx2,idx3) } else { (idx3,idx2) };
-    let mid1 = if c(min1, min2) == Less { min2 } else { min1 };
-    let mid2 = if c(max1, max2) == Less { max1 } else { max2 };
-    (mid1,mid2)
-}
-*/
 
 /// Index of the middling value of four refs. Makes only three comparisons
 fn middling(
@@ -176,13 +59,6 @@ pub fn min2<'a, T>(
     (min1, min2)
 }
 
-/*
-/// Maps general `quantify` closure to self, converting the type T -> U
-pub fn quant_vec<T, U>(v: &[T], quantify: impl Fn(&T) -> U) -> Vec<U> {
-    v.iter().map(quantify).collect::<Vec<U>>()
-}
-*/
-
 /// measure errors from centre (for testing)
 /// requires quantising to f64 for accuracy
 pub fn qbalance<T>(s: &[T], centre: &f64, q: impl Fn(&T) -> f64) -> i64 {
@@ -206,9 +82,9 @@ pub fn qbalance<T>(s: &[T], centre: &f64, q: impl Fn(&T) -> f64) -> i64 {
 
 /// Partitions `s: &mut [&T]` within range `rng`, using comparator `c`.  
 /// The first item `s[rng.start]` is assumed to be the pivot.   
-/// The three rearranged partitions are  by eqstart,gtstart, where:  
+/// The three rearranged partitions are demarcated by eqstart,gtstart, where:  
 /// `rng.start..eqstart` (may be empty) contains refs to items lesser than the pivot,  
-/// `gtstart-eqstart` is the number (>= 1) of items equal to the pivot, values within this subrange are undefined,  
+/// `gtstart-eqstart` is the number (>= 1) of items equal to the pivot (values within this subrange are undefined)  
 /// `gtstart..rng.end` (may be empty) contains refs to items greater than the pivot.
 pub fn part<T>(
     s: &mut [&T],
@@ -290,58 +166,7 @@ pub fn evenmedianu8(s: &[u8]) -> f64 {
     res
 }
 
-/// Odd median of `&[u16]`
-pub fn oddmedianu16(s: &[u16]) -> f64 {
-    let need = s.len() / 2; // median target position
-    let mut histogram = [0_usize; 65536];
-    let mut cummulator = 0_usize;
-    let mut res = 0_f64;
-    for &u in s.iter() {
-        histogram[u as usize] += 1;
-    }
-    for (i, &hist) in histogram.iter().enumerate() {
-        if hist == 0 {
-            continue;
-        };
-        cummulator += hist;
-        if need < cummulator {
-            res = i as f64;
-            break;
-        };
-    }
-    res
-}
 
-/// Even median of `&[u16]`
-pub fn evenmedianu16(s: &[u16]) -> f64 {
-    let need = s.len() / 2; // first median target position
-    let mut histogram = [0_usize; 65536];
-    let mut cummulator = 0_usize;
-    let mut firstres = true;
-    let mut res = f64::MIN;
-    for &u in s.iter() {
-        histogram[u as usize] += 1;
-    }
-    for (i, &hist) in histogram.iter().enumerate() {
-        if hist == 0 {
-            continue;
-        };
-        cummulator += hist;
-        if firstres {       
-            if need < cummulator {  res = i as f64; break; }; // cummulator exceeds need, found both items
-            if need == cummulator { // found first item (last in this bucket)
-                res = i as f64;       
-                firstres = false;
-                continue; // search for the second item
-            };
-        } else { // the second item is in the first following non-zero bucket
-            res += i as f64;
-            res /= 2.0;
-            break;
-        }; // found the second
-    };
-    res
-  }
 /// Median of odd sized generic data with Odering comparisons by custom closure
 pub fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
     let mut rng = 0..s.len();

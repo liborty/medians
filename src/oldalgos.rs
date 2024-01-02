@@ -2,6 +2,176 @@ use core::ops::Range;
 use core::fmt::Debug;
 use core::ops::{Deref, Neg};
 
+const FSIGN: u64 = 0x8000_0000_0000_0000;
+
+/// Scan a slice of f64s for being free of NANs
+pub fn no_nans(v: &[f64]) -> bool {
+    for &f in v {
+        if f.is_nan() {
+            return false;
+        };
+    }
+    true
+}
+
+/// Copies a slice of f64s, removing any NANs from it.
+/// It is advisable to test with `non_nans` first, as there may be none
+pub fn scrub_nans(v: &[f64]) -> Vec<f64> {
+    v.iter()
+        .filter_map(|&f| if f.is_nan() { None } else { Some(f) })
+        .collect::<Vec<f64>>()
+}
+
+/// Converts one f64, including NaNs etc., to u64, maintaining order
+pub fn to_u64(f: f64) -> u64 { 
+    let u: u64 = f.to_bits();
+    if (u >> 63) == 1 { u^FSIGN } else { !u }
+}
+
+/// Converts slice of f64s, including NaNs etc., to Vec<&u64>, maintaining order
+pub fn to_u64s(v: &[f64]) -> Vec<u64> { 
+    v.iter().map(|&f| to_u64(f)).collect()
+}
+
+/// Converts slice of f64s to u64s, so that sort order is preserved, cleaning NANs
+pub fn to_clean_u64s(v: &[f64]) -> Vec<u64> {
+    v.iter()
+        .filter_map(|&f| if f.is_nan() { None } else { Some(to_u64(f)) } )
+        .collect()
+}
+
+/// Converts f64 to u64 (inverse of `to_u64`).
+pub fn to_f64(u: u64) -> f64 {
+    f64::from_bits( if (u >> 63) == 1 { !u } else { u^FSIGN } )
+}
+
+/// Converts u64s to f64s (inverse of `to_u64s`).
+pub fn to_f64s(v: &[u64]) -> Vec<f64> {
+    v.iter().map(|&u| to_f64(u)).collect() 
+}
+
+/// Builds Vec<T> from refs in Vec<&T> (inverse of ref_vec())
+pub fn deref_vec<T>(v: &[&T]) -> Vec<T>
+where
+    T: Clone,
+{
+    v.iter().map(|&x| x.clone()).collect()
+}
+
+/// Maps general `quantify` closure to self, converting the type T -> U
+pub fn quant_vec<T, U>(v: &[T], quantify: impl Fn(&T) -> U) -> Vec<U> {
+    v.iter().map(quantify).collect::<Vec<U>>()
+}
+
+/// middle valued ref out of three, at most three comparisons
+pub fn midof3<'a, T>(
+    item1: &'a T,
+    item2: &'a T,
+    item3: &'a T,
+    c: &mut impl FnMut(&T, &T) -> Ordering,
+) -> &'a T {
+    let (min, max) = if c(item2, item1) == Less {
+        (item2, item1)
+    } else {
+        (item1, item2)
+    };
+    if c(min, item3) != Less {
+        return min;
+    };
+    if c(item3, max) != Less {
+        return max;
+    };
+    item3
+}
+
+/// pivot estimate as recursive mid of mids of three
+pub fn midofmids<'a, T>(s: &[&T], rng: Range<usize>, c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T
+where
+    T: PartialOrd,
+{
+    if s.len() < 3 { return s[0]; }; 
+    let (min, max) = if *item1 <= *item2 {
+        (item1, item2)
+    } else {
+        (item2, item1)
+    };
+    if *item3 <= *min {
+        return min;
+    };
+    if *item3 <= *max {
+        return item3;
+    };
+    max
+}
+
+/// Mid two values of four refs. Makes four comparisons
+fn mid2(
+    idx0: usize,
+    idx1: usize,
+    idx2: usize,
+    idx3: usize,
+    c: &mut impl FnMut(usize, usize) -> Ordering,
+) -> (usize,usize) {
+    let (min1,max1) = if c(idx0, idx1) == Less { (idx0,idx1) } else { (idx1,idx0) };
+    let (min2,max2) = if c(idx2, idx3) == Less { (idx2,idx3) } else { (idx3,idx2) };
+    let mid1 = if c(min1, min2) == Less { min2 } else { min1 };
+    let mid2 = if c(max1, max2) == Less { max1 } else { max2 };
+    (mid1,mid2)
+}
+
+/// Odd median of `&[u16]`
+pub fn oddmedianu16(s: &[u16]) -> f64 {
+    let need = s.len() / 2; // median target position
+    let mut histogram = [0_usize; 65536];
+    let mut cummulator = 0_usize;
+    let mut res = 0_f64;
+    for &u in s.iter() {
+        histogram[u as usize] += 1;
+    }
+    for (i, &hist) in histogram.iter().enumerate() {
+        if hist == 0 {
+            continue;
+        };
+        cummulator += hist;
+        if need < cummulator {
+            res = i as f64;
+            break;
+        };
+    }
+    res
+}
+
+/// Even median of `&[u16]`
+pub fn evenmedianu16(s: &[u16]) -> f64 {
+    let need = s.len() / 2; // first median target position
+    let mut histogram = [0_usize; 65536];
+    let mut cummulator = 0_usize;
+    let mut firstres = true;
+    let mut res = f64::MIN;
+    for &u in s.iter() {
+        histogram[u as usize] += 1;
+    }
+    for (i, &hist) in histogram.iter().enumerate() {
+        if hist == 0 {
+            continue;
+        };
+        cummulator += hist;
+        if firstres {       
+            if need < cummulator {  res = i as f64; break; }; // cummulator exceeds need, found both items
+            if need == cummulator { // found first item (last in this bucket)
+                res = i as f64;       
+                firstres = false;
+                continue; // search for the second item
+            };
+        } else { // the second item is in the first following non-zero bucket
+            res += i as f64;
+            res /= 2.0;
+            break;
+        }; // found the second
+    };
+    res
+  }
+
 /// The following defines Ord<T> struct which is a T that implements Ord.
 /// This boilerplate makes any wrapped T:PartialOrd, such as f64, into Ord
 #[derive(Clone,Copy,Debug)]

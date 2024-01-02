@@ -109,6 +109,8 @@ pub trait Median<'a, T> {
 
 ## Release Notes
 
+**Version 3.0.5** - Obsolete code pruning.
+
 **Version 3.0.4** - Some minor code simplifications.
 
 **Version 3.0.3** - Updated dev dependency `ran` to 2.0.

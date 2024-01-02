@@ -59,26 +59,11 @@ pub fn medianu8(s:&[u8]) -> Result<f64, Me> {
     }
 }
 
-/// Median of primitive type u16 by fast radix search
-pub fn medianu16(s:&[u16]) -> Result<f64, Me> {
-    let n = s.len();
-    match n {
-        0 => return merror("size", "median: zero length data"),
-        1 => return Ok(s[0] as f64),
-        2 => return Ok((s[0] as f64 + s[1] as f64) / 2.0),
-        _ => (),
-    };
-    if (n & 1) == 1 {
-        Ok(oddmedianu16(s))
-    } else {
-        Ok(evenmedianu16(s))
-    }
-}
 /// Fast 1D medians of floating point data, plus related methods
 pub trait Medianf64 {
-    /// Median of f64s, checked for NaNs
+    /// Median of f64s, NaNs removed
     fn medf_checked(self) -> Result<f64, Me>;
-    /// Median of f64s, not checked for NaNs
+    /// Median of f64s, including NaNs
     fn medf_unchecked(self) -> f64;
     /// Zero mean/median data produced by subtracting the centre
     fn medf_zeroed(self, centre: f64) -> Vec<f64>;
@@ -122,6 +107,11 @@ impl Medianf64 for &[f64] {
             2 => return Ok((self[0] + self[1]) / 2.0),
             _ => (),
         };
+        /*
+        if !no_nans(self) { return merror("Nan", "medf_checked: Nan found in input!");};
+        let us = &to_u64s(self);
+        let mut s = ref_vec(us,0..self.len()); 
+        */
         let mut s = self
             .iter()
             .map(|x| {
@@ -137,7 +127,7 @@ impl Medianf64 for &[f64] {
             Ok(*oddm)
         } else {
             let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
-            Ok((med1 + med2) / 2.0)
+            Ok((med1+med2) / 2.0)
         }
     }
     /// Use this when your data does not contain any NaNs.
