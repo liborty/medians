@@ -109,6 +109,8 @@ pub trait Median<'a, T> {
 
 ## Release Notes
 
+**Version 3.0.6** - Moved `part`, `ref_vec` and `deref_vec` into crate `Indxvec`, to allow their wider use.
+
 **Version 3.0.5** - Obsolete code pruning.
 
 **Version 3.0.4** - Some minor code simplifications.

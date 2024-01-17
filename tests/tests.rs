@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #[cfg(test)]
 use indxvec::{here, printing::*, Indices, Mutops, Printing, Vecops};
-use medians::algos::{qbalance, part, ref_vec, min, min2};
+use medians::algos::{qbalance, min, min2};
 // use medians::algosf64::partord;
 use medians::{Me, merror, medianu8, Median, Medianf64};
 use ran:: *;
@@ -22,8 +22,8 @@ fn parting() -> Result<(), Me> {
     // println!("Scrubbed: {}", scrub_nans(&to_f64s(&to_u64s(&data))).gr());
     let len = data.len();
     println!("Pivot {}: {}", data[0].yl(), data.gr());
-    let mut refdata = ref_vec(&data, 0..len);
-    let (eqsub, gtsub) = part(
+    let mut refdata = data.ref_vec(0..len);
+    let (eqsub, gtsub) = <&mut [f64]>::part(
         &mut refdata,
         &(0..len), 
         &mut <f64>::total_cmp,
@@ -75,10 +75,10 @@ fn medf64() -> Result<(), Me> {
     ];
     println!("Data: {}",v.gr());
     let len = v.len();
-    let mut vr = ref_vec(&v,0..len);
+    let mut vr = v.ref_vec(0..len);
     println!("max: {}",min(&vr,0..len,&mut |a:&f64,b:&f64| b.total_cmp(a)).gr());
     println!("max2: {}",min2(&vr,0..len,&mut |a:&f64,b:&f64| b.total_cmp(a)).gr());
-    let (eqsub,gtsub) = part(
+    let (eqsub,gtsub) = <&mut [f64]>::part(
         &mut vr,
         &(0..v.len()),
         &mut <f64>::total_cmp,

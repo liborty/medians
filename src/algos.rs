@@ -1,10 +1,6 @@
 use core::cmp::{Ordering, Ordering::*};
 use std::ops::Range;
-
-/// Constructs ref wrapped `Vec<&T>` from `&[T] in rng`
-pub fn ref_vec<T>(v: &[T], rng: Range<usize>) -> Vec<&T> {
-    v.iter().take(rng.end).skip(rng.start).collect()
-}
+use indxvec::Mutops;
 
 /// Index of the middling value of four refs. Makes only three comparisons
 fn middling(
@@ -80,39 +76,6 @@ pub fn qbalance<T>(s: &[T], centre: &f64, q: impl Fn(&T) -> f64) -> i64 {
     1
 }
 
-/// Partitions `s: &mut [&T]` within range `rng`, using comparator `c`.  
-/// The first item `s[rng.start]` is assumed to be the pivot.   
-/// The three rearranged partitions are demarcated by eqstart,gtstart, where:  
-/// `rng.start..eqstart` (may be empty) contains refs to items lesser than the pivot,  
-/// `gtstart-eqstart` is the number (>= 1) of items equal to the pivot (values within this subrange are undefined)  
-/// `gtstart..rng.end` (may be empty) contains refs to items greater than the pivot.
-pub fn part<T>(
-    s: &mut [&T],
-    rng: &Range<usize>,
-    c: &mut impl FnMut(&T, &T) -> Ordering,
-) -> (usize, usize) {
-    // get pivot from the first location
-    let pivot = s[rng.start];
-    let mut eqstart = rng.start;
-    let mut gtstart = eqstart + 1;
-    for t in rng.start + 1..rng.end {
-        match c(s[t], pivot) {
-            Less => {
-                s[eqstart] = s[t];
-                eqstart += 1;
-                s[t] = s[gtstart];
-                gtstart += 1;
-            }
-            Equal => {
-                s[t] = s[gtstart];
-                gtstart += 1;
-            }
-            Greater => (),
-        }
-    }
-    (eqstart, gtstart)
-}
-
 /// Odd median of `&[u8]`
 pub fn oddmedianu8(s: &[u8]) -> f64 {
     let need = s.len() / 2; // median target position
@@ -183,7 +146,7 @@ pub fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Orderi
             s.swap(rng.start, pivotsub);
         };
         let pivotref = s[rng.start];
-        let (eqsub, gtsub) = part(s, &rng, c);
+        let (eqsub, gtsub) = <&mut [T]>::part(s, &rng, c);
         // well inside lt partition, iterate on it
         if need + 2 < eqsub {
             rng.end = eqsub;
@@ -235,7 +198,7 @@ pub fn evenmedian_by<'a, T>(
             s.swap(rng.start, pivotsub);
         };
         let pivotref = s[rng.start];
-        let (eqsub, gtsub) = part(s, &rng, c);
+        let (eqsub, gtsub) = <&mut [T]>::part(s, &rng, c);
         // well inside lt partition, iterate on it narrowing the range
         if need + 2 < eqsub {
             rng.end = eqsub;

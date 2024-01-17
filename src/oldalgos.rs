@@ -50,14 +50,6 @@ pub fn to_f64s(v: &[u64]) -> Vec<f64> {
     v.iter().map(|&u| to_f64(u)).collect() 
 }
 
-/// Builds Vec<T> from refs in Vec<&T> (inverse of ref_vec())
-pub fn deref_vec<T>(v: &[&T]) -> Vec<T>
-where
-    T: Clone,
-{
-    v.iter().map(|&x| x.clone()).collect()
-}
-
 /// Maps general `quantify` closure to self, converting the type T -> U
 pub fn quant_vec<T, U>(v: &[T], quantify: impl Fn(&T) -> U) -> Vec<U> {
     v.iter().map(quantify).collect::<Vec<U>>()

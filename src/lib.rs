@@ -15,7 +15,7 @@ use crate::algos::*;
 pub use crate::error::{merror, MedError};
 
 use core::{cmp::Ordering, fmt::Display};
-use indxvec::printing::{GR, UN, YL};
+use indxvec::{Vecops,printing::{GR, UN, YL}};
 
 /// Shorthand type for medians errors with message payload specialized to String
 pub type Me = MedError<String>;
@@ -141,7 +141,7 @@ impl Medianf64 for &[f64] {
             2 => return (self[0] + self[1]) / 2.0,
             _ => (),
         };
-        let mut s = ref_vec(self, 0..self.len());
+        let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
             let oddm = oddmedian_by(&mut s, &mut <f64>::total_cmp);
             *oddm
@@ -211,7 +211,7 @@ impl<'a, T> Median<'a, T> for &'a [T] {
             2 => return Ok((q(&self[0]) + q(&self[1])) / 2.0),
             _ => (),
         };
-        let mut s = ref_vec(self, 0..self.len());
+        let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
             Ok(q(oddmedian_by(&mut s, c)))
         } else {
@@ -229,7 +229,7 @@ impl<'a, T> Median<'a, T> for &'a [T] {
             2 => return Ok(Medians::Even((&self[0], &self[1]))),
             _ => (),
         };
-        let mut s = ref_vec(self, 0..self.len());
+        let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
             Ok(Medians::Odd(oddmedian_by(&mut s, c)))
         } else {
