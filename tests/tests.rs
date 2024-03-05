@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 #[cfg(test)]
 use indxvec::{here, printing::*, Indices, Mutops, Printing, Vecops};
-use medians::algos::{qbalance, min, min2};
+use medians::algos::{qbalance, min, min2,best1_k};
 // use medians::algosf64::partord;
 use medians::{Me, merror, medianu8, Median, Medianf64};
 use ran:: *;
@@ -73,7 +73,9 @@ fn medf64() -> Result<(), Me> {
     let v = [
        9., 10., 18., 17., 16., 15., 14., 1., 2., 3., 4., 5., 6., 7., 8., 17., 10., 11., 12., 13., 14., 15., 16., 18., 9.
     ];
-    println!("Data: {}",v.gr());
+    let weights = [ 1.,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.,15.,16.,17.,18.,19.,20.,21.,22.,23.,24.,25.];
+    println!("Data:    {}",v.gr());
+    println!("Weights: {}",weights.gr());   
     let len = v.len();
     let mut vr = v.ref_vec(0..len);
     println!("max: {}",min(&vr,0..len,&mut |a:&f64,b:&f64| b.total_cmp(a)).gr());
@@ -95,7 +97,8 @@ fn medf64() -> Result<(), Me> {
     );
     let median = v.medf_checked()?;
     let mad = v.madf(median);
-    println!("\nMedian±mad: {GR}{}±{}{UN}", median, mad);
+    println!("Median±mad: {GR}{}±{}{UN}", median, mad);
+    println!("Weighted median: {GR}{}{UN} ", v.medf_weighted(&weights,0.0001)?);
     Ok(())
 }
 
@@ -141,38 +144,45 @@ fn errors() -> Result<(), Me> {
     Ok(())
 }
 
-const NAMES: [&str; 3] = [
- //  "medf_unchecked",
-   "qmedian",
-   "median_by", 
-   "medianu8"
+const NAMES: [&str; 3] = [ 
+   "median_by",
+   "best_k",
+   "medf_unchecked", 
+
 ];
 
-const CLOSURESU8: [fn(&[u8]); 3] = [
-//    |v: &[_]| {
-//        v.medf_unchecked();
-//   },
-//    |v: &[_]| {
-//        v.medf_checked().expect("median closure failed");
- //   },
-
+const CLOSURESF64: [fn(&[f64]); 3] = [
     |v: &[_]| {
-        v.qmedian_by(&mut <u8>::cmp,|&x| x as f64)
-        .expect("even median closure failed");
-    }, 
-    |v: &[_]| {
-        v.median_by(&mut <u8>::cmp)
+        v.median_by(&mut <f64>::total_cmp)
             .expect("even median closure failed");
     },
+    |v: &[_]| {
+        let mut sorted:Vec<&f64> = v.iter().collect();
+        sorted.sort_unstable_by(|&a,&b| a.total_cmp(b));
+        // sorted[sorted.len()/2]; 
+    },
+    |v: &[_]| {
+        v.medf_unchecked();
+    },
+
+   /*
+    |v: &[_]| {
+        v.qmedian_by(&mut <f64>::total_cmp,|&x| x)
+        .expect("even median closure failed");
+    },
+    */
+
+    /*
     |v: &[_]| {
         medianu8(v)
             .expect("medianu8 closure failed");
     }
+    */
 ];
 
 #[test]
 fn comparison() {
     // set_seeds(0); // intialise random numbers generator
     // Rnum encapsulates the type of random data to be generated
-    benchu8(3..5000, 100, 10, &NAMES, &CLOSURESU8);
+    benchf64(3..100, 1, 10, &NAMES, &CLOSURESF64);
 }

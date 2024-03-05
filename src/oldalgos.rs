@@ -4,16 +4,6 @@ use core::ops::{Deref, Neg};
 
 const FSIGN: u64 = 0x8000_0000_0000_0000;
 
-/// Scan a slice of f64s for being free of NANs
-pub fn no_nans(v: &[f64]) -> bool {
-    for &f in v {
-        if f.is_nan() {
-            return false;
-        };
-    }
-    true
-}
-
 /// Copies a slice of f64s, removing any NANs from it.
 /// It is advisable to test with `non_nans` first, as there may be none
 pub fn scrub_nans(v: &[f64]) -> Vec<f64> {

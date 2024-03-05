@@ -2,6 +2,40 @@ use core::cmp::{Ordering, Ordering::*};
 use std::ops::Range;
 use indxvec::Mutops;
 
+/// Scan a slice of f64s for NANs
+pub fn nans(v: &[f64]) -> bool {
+    for &f in v {
+        if f.is_nan() {
+            return true;
+        };
+    }
+    false
+}
+
+/// kth item from rng (ascending or descending, depending on `c`)
+pub fn best1_k<T,F>(s: &[T], k: usize, rng: Range<usize>, c: F) -> &T
+   where
+       F: Fn(&T, &T) -> Ordering,
+   {
+       let n = rng.len();
+       assert!((k > 0) & (k <= n));
+       let mut k_sorted: Vec<&T> = s.iter().skip(rng.start).take(k).collect();
+       k_sorted.sort_unstable_by(|&a, &b| c(a, b));
+       let mut k_max = k_sorted[k - 1];
+       for si in s.iter() {
+           if c(si, k_max) == Less {
+               let insert_pos = match k_sorted.binary_search_by(|j| c(j, si)) {
+                   Ok(ins) => ins + 1,
+                   Err(ins) => ins,
+               };
+               k_sorted.insert(insert_pos, si);
+               k_sorted.pop();
+               k_max = k_sorted[k - 1];
+           };
+       }
+       k_max
+   }
+
 /// Index of the middling value of four refs. Makes only three comparisons
 fn middling(
     idx0: usize,

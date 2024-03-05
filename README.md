@@ -44,10 +44,12 @@ The main features of our median algorithm are:
 ```rust
 /// Fast 1D medians of floating point data, plus related methods
 pub trait Medianf64 {
-    /// Median of f64s, checked for NaNs
+    /// Median of f64s, NaNs removed
     fn medf_checked(self) -> Result<f64, Me>;
-    /// Median of f64s, not checked for NaNs
+    /// Median of f64s, including NaNs
     fn medf_unchecked(self) -> f64;
+    /// Iterative weighted median
+    fn medf_weighted(self, ws: Self, eps: f64) -> Result<f64, Me>;
     /// Zero mean/median data produced by subtracting the centre
     fn medf_zeroed(self, centre: f64) -> Vec<f64>;
     /// Median correlation = cosine of an angle between two zero median vecs
@@ -108,6 +110,8 @@ pub trait Median<'a, T> {
 ```
 
 ## Release Notes
+
+**Version 3.0.7** - Added `medf_weighted`, applying `&[f64]` weights.
 
 **Version 3.0.6** - Moved `part`, `ref_vec` and `deref_vec` into crate `Indxvec`, to allow their wider use.
 

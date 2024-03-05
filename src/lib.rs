@@ -65,6 +65,8 @@ pub trait Medianf64 {
     fn medf_checked(self) -> Result<f64, Me>;
     /// Median of f64s, including NaNs
     fn medf_unchecked(self) -> f64;
+    /// Iterative weighted median
+    fn medf_weighted(self, ws: Self, eps: f64) -> Result<f64, Me>;
     /// Zero mean/median data produced by subtracting the centre
     fn medf_zeroed(self, centre: f64) -> Vec<f64>;
     /// Median correlation = cosine of an angle between two zero median vecs
@@ -107,11 +109,6 @@ impl Medianf64 for &[f64] {
             2 => return Ok((self[0] + self[1]) / 2.0),
             _ => (),
         };
-        /*
-        if !no_nans(self) { return merror("Nan", "medf_checked: Nan found in input!");};
-        let us = &to_u64s(self);
-        let mut s = ref_vec(us,0..self.len()); 
-        */
         let mut s = self
             .iter()
             .map(|x| {
@@ -148,6 +145,33 @@ impl Medianf64 for &[f64] {
         } else {
             let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
             (med1 + med2) / 2.0
+        }
+    }
+    /// Iterative weighted median with accuracy eps
+    fn medf_weighted(self, ws: Self, eps: f64) -> Result<f64, Me> { 
+        if self.len() != ws.len() { 
+            return merror("size","medf_weighted - data and weights lengths mismatch"); };
+        if nans(self) {
+            return merror("Nan","medf_weighted - detected Nan in input"); };
+        let weights_sum: f64 = ws.iter().sum();
+        let mut last_median  = 0_f64;
+        for (g,w) in self.iter().zip(ws) { last_median += w*g; }; 
+        last_median /= weights_sum; // start iterating from the weighted centre 
+        let mut last_recsum = 0f64;
+        loop { // iteration till accuracy eps is exceeded  
+            let mut median = 0_f64;   
+            let mut recsum = 0_f64;
+            for (x,w) in self.iter().zip(ws) {   
+                let mag = (x-last_median).abs(); 
+                if mag.is_normal() { // only use this point if its distance from median is > 0.0
+                    let rec = w/(mag.sqrt()); // weight/distance
+                    median += rec*x; 
+                    recsum += rec // add separately the reciprocals for final scaling   
+                } 
+            }
+            if recsum-last_recsum < eps { return Ok(median/recsum); };  // termination test 
+            last_median = median/recsum;
+            last_recsum = recsum;            
         }
     }
     /// Zero mean/median data produced by subtracting the centre,
