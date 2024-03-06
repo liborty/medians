@@ -1,6 +1,7 @@
 use core::cmp::{Ordering, Ordering::*};
 use std::ops::Range;
 use indxvec::Mutops;
+use crate::{Me,merror};
 
 /// Scan a slice of f64s for NANs
 pub fn nans(v: &[f64]) -> bool {
@@ -111,7 +112,7 @@ pub fn qbalance<T>(s: &[T], centre: &f64, q: impl Fn(&T) -> f64) -> i64 {
 }
 
 /// Odd median of `&[u8]`
-pub fn oddmedianu8(s: &[u8]) -> f64 {
+fn oddmedianu8(s: &[u8]) -> f64 {
     let need = s.len() / 2; // median target position
     let mut histogram = [0_usize; 256];
     let mut cummulator = 0_usize;
@@ -133,7 +134,7 @@ pub fn oddmedianu8(s: &[u8]) -> f64 {
 }
 
 /// Even median of `&[u8]`
-pub fn evenmedianu8(s: &[u8]) -> f64 {
+fn evenmedianu8(s: &[u8]) -> f64 {
     let need = s.len() / 2; // first median target position
     let mut histogram = [0_usize; 256];
     let mut cummulator = 0_usize;
@@ -163,9 +164,24 @@ pub fn evenmedianu8(s: &[u8]) -> f64 {
     res
 }
 
+/// Median of primitive type u8 by fast radix search
+pub fn medianu8(s:&[u8]) -> Result<f64, Me> {
+    let n = s.len();
+    match n {
+        0 => return merror("size", "median: zero length data")?,
+        1 => return Ok(s[0] as f64),
+        2 => return Ok((s[0] as f64 + s[1] as f64) / 2.0),
+        _ => (),
+    };
+    if (n & 1) == 1 {
+        Ok(oddmedianu8(s))
+    } else {
+        Ok(evenmedianu8(s))
+    }
+}
 
 /// Median of odd sized generic data with Odering comparisons by custom closure
-pub fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
+pub(super) fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
     let mut rng = 0..s.len();
     let need = s.len() / 2; // median target position in fully partitioned set
     loop {
@@ -214,7 +230,7 @@ pub fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Orderi
 }
 
 /// Median of even sized generic data with Odering comparisons by custom closure
-pub fn evenmedian_by<'a, T>(
+pub(super) fn evenmedian_by<'a, T>(
     s: &mut [&'a T],
     c: &mut impl FnMut(&T, &T) -> Ordering,
 ) -> (&'a T, &'a T) {

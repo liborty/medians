@@ -5,7 +5,7 @@
 Fast algorithm for finding medians of one dimensional data, implemented in 100% safe Rust.
 
 ```rust
-use medians::{medianu8,Medians,Medianf64,Median};
+use medians::{*,algos::*};
 ```
 
 ## Introduction
@@ -111,6 +111,8 @@ pub trait Median<'a, T> {
 
 ## Release Notes
 
+**Version 3.0.8** - Added `implementation.rs` module and reorganized the source.
+
 **Version 3.0.7** - Added `medf_weighted`, applying `&[f64]` weights.
 
 **Version 3.0.6** - Moved `part`, `ref_vec` and `deref_vec` into crate `Indxvec`, to allow their wider use.
@@ -126,19 +128,3 @@ pub trait Median<'a, T> {
 **Version 3.0.1** - Renamed `correlation` to `med_correlation` to avoid name clashes elsewhere.
 
 **Version 3.0.0** - Numerous improvements to speed and generality and renaming.
-
-**Version 2.3.1** - Further speed optimisation of `partf64`.
-
-**Version 2.3.0** - Some minor changes to `algosf64.rs`. Improvements to this manual.
-
-**Version 2.2.6** - Improved `README.md`. No changes to the code.
-
-**Version 2.2.5** - Upped dependency on `indxvec` to version 1.8.
-
-**Version 2.2.3** - Slight further improvement to efficiency of `part`.
-
-**Version 2.2.2** - Corrected some comment and readme typos. No change in functionality.
-
-**Version 2.2.1** - Some code pruning and streamlining. No change in functionality.
-
-**Version 2.2.0** - Major new version with much improved speed and generality and some breaking changes (renaming).
