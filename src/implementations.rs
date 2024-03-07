@@ -56,12 +56,12 @@ impl Medianf64 for &[f64] {
                     Ok(x)
                 }
             })
-            .collect::<Result<Vec<&f64>, Me>>()?;
+            .collect::<Result<Vec<&f64>, Me>>()?;        
         if (n & 1) == 1 {
-            let oddm = oddmedian_by(&mut s, &mut <f64>::total_cmp);
+            let oddm = oddmed_by(&mut s, &mut <f64>::total_cmp);
             Ok(*oddm)
         } else {
-            let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
+            let (&med1, &med2) = evenmed_by(&mut s, &mut <f64>::total_cmp);
             Ok((med1+med2) / 2.0)
         }
     }
@@ -76,15 +76,15 @@ impl Medianf64 for &[f64] {
             2 => return (self[0] + self[1]) / 2.0,
             _ => (),
         };
-        let mut s = self.ref_vec(0..self.len());
+        let mut s = self.ref_vec(0..self.len());        
         if (n & 1) == 1 {
-            let oddm = oddmedian_by(&mut s, &mut <f64>::total_cmp);
+            let oddm = oddmed_by(&mut s, &mut <f64>::total_cmp);
             *oddm
         } else {
-            let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
+            let (&med1, &med2) = evenmed_by(&mut s, &mut <f64>::total_cmp);
             (med1 + med2) / 2.0
         }
-    }
+    } 
     /// Iterative weighted median with accuracy eps
     fn medf_weighted(self, ws: Self, eps: f64) -> Result<f64, Me> { 
         if self.len() != ws.len() { 
@@ -175,9 +175,9 @@ impl<'a, T> Median<'a, T> for &'a [T] {
         };
         let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
-            Ok(q(oddmedian_by(&mut s, c)))
+            Ok(q(oddmed_by(&mut s, c)))
         } else {
-            let (med1, med2) = evenmedian_by(&mut s, c);
+            let (med1, med2) = evenmed_by(&mut s, c);
             Ok((q(med1) + q(med2)) / 2.0)
         }
     }
@@ -193,9 +193,9 @@ impl<'a, T> Median<'a, T> for &'a [T] {
         };
         let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
-            Ok(Medians::Odd(oddmedian_by(&mut s, c)))
+            Ok(Medians::Odd(oddmed_by(&mut s, c)))
         } else {
-            Ok(Medians::Even(evenmedian_by(&mut s, c)))
+            Ok(Medians::Even(evenmed_by(&mut s, c)))
         }
     }
 

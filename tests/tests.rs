@@ -12,27 +12,7 @@ use times::{benchf64, benchu64, benchu8, mutbenchf64};
 #[test]
 fn parting() -> Result<(), Me> {
     let data = [
-        5.,
-        8.,
-        7.,
-        6.,
-        5.,
-        4.,
-        3.,
-        2.,
-        -f64::NAN,
-        1.,
-        0.,
-        1.,
-        -2.,
-        3.,
-        4.,
-        -5.,
-        f64::NAN,
-        f64::NAN,
-        6.,
-        7.,
-        7.,
+        5.,8.,7.,6.,5.,4.,3.,2.,-f64::NAN,1.,0.,1.,-2.,3.,4.,-5.,f64::NAN,f64::NAN,6.,7.,7.
     ];
     // println!("To u64s: {}",to_u64s(&data).gr());
     // println!("To f64s: {}",to_f64s(&to_u64s(&data)).gr());
@@ -174,17 +154,12 @@ fn errors() -> Result<(), Me> {
     Ok(())
 }
 
-const NAMES: [&str; 3] = ["median_by", "best_k", "medf_unchecked"];
+const NAMES: [&str; 2] = ["median_by","medf_unchecked"];
 
-const CLOSURESF64: [fn(&[f64]); 3] = [
+const CLOSURESF64: [fn(&[f64]); 2] = [
     |v: &[_]| {
         v.median_by(&mut <f64>::total_cmp)
             .expect("even median closure failed");
-    },
-    |v: &[_]| {
-        let mut sorted: Vec<&f64> = v.iter().collect();
-        sorted.sort_unstable_by(|&a, &b| a.total_cmp(b));
-        // sorted[sorted.len()/2];
     },
     |v: &[_]| {
         v.medf_unchecked();
@@ -208,5 +183,5 @@ const CLOSURESF64: [fn(&[f64]); 3] = [
 fn comparison() {
     // set_seeds(0); // intialise random numbers generator
     // Rnum encapsulates the type of random data to be generated
-    benchf64(3..100, 1, 10, &NAMES, &CLOSURESF64);
+    benchf64(901..920, 1, 10, &NAMES, &CLOSURESF64);
 }

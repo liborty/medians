@@ -10,7 +10,7 @@ use medians::{*,algos::*};
 
 ## Introduction
 
-Finding medians is a common task in statistics and data analysis. At least it ought to be, because median is a more stable measure of central tendency than mean. Similarly, `mad` (median of absolute differences) is a more stable measure of data spread than is standard deviation, which is dominated by squared outliers. Median and mad are not used nearly enough mostly for practical reasons: they are more difficult to compute. The fast algorithms presented here provide remedy for this situation.
+Finding medians is a common task in statistics and data analysis. At least it ought to be, because median is a more stable measure of central tendency than mean. Similarly, `mad` (median of absolute differences) is a more stable measure of data spread than standard deviation, which is dominated by squared outliers. Median and `mad` are not used nearly enough mostly for practical historical reasons: they are more difficult to compute. The fast algorithms presented here provide remedy for this situation.
 
 We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geometric Median is the most stable way to characterise multidimensional data. The one dimensional case is addressed here.
 
@@ -18,26 +18,29 @@ See [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs) fo
 
 ## Algorithms Analysis
 
-Simple primitive types are best dealt with by extra fast radix search. We have implemented it for `u8`, other primitive types to follow soon:
+Short primitive types are best dealt with by radix search. We have implemented it for `u8`:
 
 ```rust
 /// Median of primitive type u8 by fast radix search
 pub fn medianu8( s:&[u8] ) -> Result<f64, Me> { ... }
 ```
 
-More complex types require general comparison search. Median can be found naively by sorting the list of data and then picking its midpoint. The best comparison sort algorithm(s) have complexity `O(nlog(n))`. However, faster median algorithms, with complexity `O(n)` are possible. They are based on the observation that not all data need to be sorted, only partitioned and counted off. Therefore, the sort method can not compete, as is demonstrated by the tests. It has been deleted as of version 2.0.0.
+More complex types require general comparison search. Median can be found naively by sorting the list of data and then picking its midpoint. The best comparison sort algorithm(s) have complexity `O(n*log(n))`. However, faster median algorithms, with complexity `O(n)` are possible. They are based on the observation that data need to be sorted, only partitioned and counted off. Therefore, the sort method can not compete. It has been deleted as of version 2.0.0.
 
-Currently considered to be the 'state of the art' comparison algorithm is Floyd-Rivest (1975) Median of Medians. This divides the data into groups of five items, finds a median of each group by sort and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. Such pivot is guaranteed to produce 'pretty good' partitioning, though not necessarily perfect, so iteration is still necessary.
+Currently considered to be the 'state of the art' comparison algorithm is Floyd-Rivest (1975): Median of Medians. This divides the data into groups of five items, finds a median of each group by sort and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. Such pivot is guaranteed to produce 'pretty good' partitioning, though not necessarily perfect, so iteration is still necessary.
 
 To find the best pivot is not the main overall objective. Rather, it is to eliminate (count off) eccentric data items as fast as possible. Therefore, the expense of choosing the pivot must be considered. It is possible to allow less optimal pivots, as we do here and yet, on average, to find the median faster.
 
-Let our average ratio of items remaining after one partitioning be `rs` and the Floyd-Rivest's be `rf`. Typically, `1/2 <= rf <= rs < 1`, i.e. `rf` is more optimal, being nearer to the perfect partitioning ratio `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `rs^2 < rf`, which is entirely possible and seems to be confirmed in practice. For example, `rf=0.65` (nearly optimal), `rs=0.8` (deeply suboptimal), yet `rs^2 < rf`.
+Let our average ratio of items remaining after one partitioning be `rs` and the Floyd-Rivest's be `rf`. Typically, `1/2 <= rf <= rs < 1`, i.e. `rf` is more optimal, being nearer to the perfect partitioning ratio of `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `rs^2 < rf`, which is perfectly possible and seems to be born out in practice. For example, `rf=0.65` (nearly optimal), `rs=0.8` (deeply suboptimal), yet `rs^2 < rf`.
 
-The main features of our median algorithm are:
+On large datasets it pays to select the pivot more carefully. Here we depart from Floyd-Rivest and their recursive sorting of ad-hoc groups of five items. Instead, we recursively find the actual median of a subsample of data (currently 1/20).
+
+### Summary of he main features of our median algorithm
 
 * Linear complexity.
 * Fast (in-place) iterative partitioning into three subranges (lesser,equal,greater), minimising data movements and memory management.
-* Simple pivot selection strategy. We define the `middling` value of a sample of four as one of the middle pair of items in order. Whereas full (merge) sort of four items takes five comparisons, we only need three. A `middling` pivot is enough to guarantee convergence of iterative schemes, such as the search for the median. Also, poor pivots are unlikely to be picked repeatedly.
+* Simple pivot selection on small datasets. We define the `middling` value of a sample of four as one of the middle pair of ordered items. This is found in only three comparisons. A `middling` pivot is enough to guarantee convergence of iterative search for the median. Really poor pivots occur only rarely.
+* Recursive deployment on subsamples of large datasets for more accurate pivots.
 
 ## Trait Medianf64
 
@@ -110,6 +113,8 @@ pub trait Median<'a, T> {
 ```
 
 ## Release Notes
+
+**Version 3.0.9** - Improved performance on large data sets by recursive pivot estimation.
 
 **Version 3.0.8** - Added `implementation.rs` module and reorganized the source.
 
