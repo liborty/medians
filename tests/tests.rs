@@ -18,9 +18,9 @@ fn parting() -> Result<(), Me> {
     // println!("To f64s: {}",to_f64s(&to_u64s(&data)).gr());
     // println!("Scrubbed: {}", scrub_nans(&to_f64s(&to_u64s(&data))).gr());
     let len = data.len();
-    println!("Pivot {}: {}", data[0].yl(), data.gr());
+    println!("Pivot {}: {}", 7.0.yl(), data.gr());
     let mut refdata = data.ref_vec(0..len);
-    let (eqsub, gtsub) = <&mut [f64]>::part(&mut refdata, &(0..len), &mut <f64>::total_cmp);
+    let (eqsub, gtsub) = partit(&mut refdata, &7.0, &(0..len), &mut <f64>::total_cmp);
     println!(
         "Result: {}\nCommas show the subranges:\n\
         {GR}[{}, {}, {}]{UN}\n{} items equal to pivot {}",

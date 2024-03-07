@@ -1,7 +1,38 @@
 use crate::{merror, Me};
 use core::cmp::{Ordering, Ordering::*};
-use indxvec::Mutops;
 use std::ops::Range;
+
+/// Partitions `s: &mut [&T]` within range `rng`, using comparator `c`.
+/// Returns the boundaries of the rearranged partitions, (eqstart,gtstart), where  
+/// `rng.start..eqstart` (may be empty) contains references to items lesser than the pivot,  
+/// `eqstart..gtstart`are items equal to the pivot,  
+/// `gtstart..rng.end` (may be empty) contains references to items greater than the pivot.
+pub fn partit<'a,T>(
+    s: &mut [&'a T],
+    pivot: &'a T,
+    rng: &Range<usize>,
+    c: &mut impl FnMut(&T, &T) -> Ordering,
+) -> (usize, usize) { 
+    let mut eqstart = rng.start;
+    let mut gtstart = eqstart;
+    for t in rng.start..rng.end {
+        match c(s[t], pivot) {
+            Less => {
+                s[eqstart] = s[t];
+                eqstart += 1;
+                s[t] = s[gtstart];
+                gtstart += 1;
+            }
+            Equal => { 
+                s[t] = s[gtstart];
+                gtstart += 1;
+            }
+            Greater => (),
+        }
+    }
+    for e in eqstart..gtstart { s[e] = pivot; }
+    (eqstart, gtstart)
+}
 
 /// Scan a slice of f64s for NANs
 pub fn nans(v: &[f64]) -> bool {
@@ -186,31 +217,26 @@ pub fn medianu8(s: &[u8]) -> Result<f64, Me> {
 }
 
 /// Median of odd sized generic data with Odering comparisons by custom closure
-pub(super) fn oddmed_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
-    let mut rng = 0..s.len();
-    let need = s.len() / 2; // median target position in fully partitioned set
+pub(super) fn oddmed_by<'a, T>(
+    s: &mut [&'a T],
+    mut rng: Range<usize>,
+    c: &mut impl FnMut(&T, &T) -> Ordering,
+) -> &'a T {
+    let need = rng.len() / 2; // median target position in fully partitioned set
     loop {
-        let len = rng.len();
-        if len > 99 {
-            let mut pivotref = oddmed_by(
-                &mut s[rng.start..rng.start+len/20],
-                c,
-            ); 
-            std::mem::swap(&mut s[rng.start],&mut pivotref);
+        let n = rng.len();
+        let pivotref = if n > 99 {
+            oddmed_by(s, rng.start..rng.start + n / 20, c) 
         } else {
-        let pivotsub  = middling(
-               rng.start,
+            s[middling(
+                rng.start,
                 rng.start + 1,
                 rng.end - 2,
                 rng.end - 1,
                 &mut |a, b| c(s[a], s[b]),
-            );
-            if pivotsub != rng.start {
-                s.swap(rng.start, pivotsub);
-            };
+            )] 
         };
-
-        let (eqsub, gtsub) = <&mut [T]>::part(s, &rng, c);
+        let (eqsub, gtsub) = partit(s, pivotref, &rng, c);
         // well inside lt partition, iterate on it
         if need + 2 < eqsub {
             rng.end = eqsub;
@@ -228,7 +254,7 @@ pub(super) fn oddmed_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Or
         };
         if need < gtsub {
             // within equals partition, return the pivot
-            return s[rng.start];
+            return pivotref;
         };
         // first place in gt partition, the solution is its minimum
         if need == gtsub {
@@ -245,31 +271,24 @@ pub(super) fn oddmed_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Or
 /// Median of even sized generic data with Odering comparisons by custom closure
 pub(super) fn evenmed_by<'a, T>(
     s: &mut [&'a T],
+    mut rng: Range<usize>,
     c: &mut impl FnMut(&T, &T) -> Ordering,
 ) -> (&'a T, &'a T) {
-    let mut rng = 0..s.len();
     let need = s.len() / 2 - 1; // median target position in fully partitioned set
-    loop {
-        let len = rng.len();
-        if len > 99 {
-            let mut pivotref = oddmed_by(
-                &mut s[rng.start..rng.start+len/20],
-                c,
-            ); 
-            std::mem::swap(&mut s[rng.start],&mut pivotref);
-        } else {
-            let pivotsub  = middling(
-                rng.start,
-                rng.start + 1,
-                rng.end - 2,
-                rng.end - 1,
-                &mut |a, b| c(s[a], s[b]),
-            );
-            if pivotsub != rng.start {
-                s.swap(rng.start, pivotsub);
+    loop { 
+        let n = rng.len();
+        let pivotref = if n > 99 {
+                oddmed_by(s, rng.start..rng.start + n / 20, c) 
+            } else {
+                s[middling(
+                    rng.start,
+                    rng.start + 1,
+                    rng.end - 2,
+                    rng.end - 1,
+                    &mut |a, b| c(s[a], s[b]),
+                )] 
             };
-        }; 
-        let (eqsub, gtsub) = <&mut [T]>::part(s, &rng, c);
+        let (eqsub, gtsub) = partit(s, pivotref, &rng, c);
         // well inside lt partition, iterate on it narrowing the range
         if need + 2 < eqsub {
             rng.end = eqsub;
@@ -284,8 +303,7 @@ pub(super) fn evenmed_by<'a, T>(
         // first place in gt partition, the solution are its two minima
         if need == gtsub {
             return min2(s, gtsub..rng.end, c);
-        };
-        let pivotref = s[rng.start];
+        }; 
         // last place in the lt partition:
         if need + 1 == eqsub {
             // swapped comparison arguments to get maximum
