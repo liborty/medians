@@ -56,12 +56,12 @@ impl Medianf64 for &[f64] {
                     Ok(x)
                 }
             })
-            .collect::<Result<Vec<&f64>, Me>>()?;        
+            .collect::<Result<Vec<&f64>, Me>>()?;
         if (n & 1) == 1 {
-            let oddm = oddmed_by(&mut s, 0..n, &mut <f64>::total_cmp);
+            let oddm = oddmedian_by(&mut s, &mut <f64>::total_cmp);
             Ok(*oddm)
         } else {
-            let (&med1, &med2) = evenmed_by(&mut s, 0..n, &mut <f64>::total_cmp);
+            let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
             Ok((med1+med2) / 2.0)
         }
     }
@@ -76,15 +76,15 @@ impl Medianf64 for &[f64] {
             2 => return (self[0] + self[1]) / 2.0,
             _ => (),
         };
-        let mut s = self.ref_vec(0..n);        
+        let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
-            let oddm = oddmed_by(&mut s, 0..n,&mut <f64>::total_cmp);
+            let oddm = oddmedian_by(&mut s, &mut <f64>::total_cmp);
             *oddm
         } else {
-            let (&med1, &med2) = evenmed_by(&mut s, 0..n,&mut <f64>::total_cmp);
+            let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
             (med1 + med2) / 2.0
         }
-    } 
+    }
     /// Iterative weighted median with accuracy eps
     fn medf_weighted(self, ws: Self, eps: f64) -> Result<f64, Me> { 
         if self.len() != ws.len() { 
@@ -175,9 +175,9 @@ impl<'a, T> Median<'a, T> for &'a [T] {
         };
         let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
-            Ok(q(oddmed_by(&mut s, 0..n,c)))
+            Ok(q(oddmedian_by(&mut s, c)))
         } else {
-            let (med1, med2) = evenmed_by(&mut s, 0..n, c);
+            let (med1, med2) = evenmedian_by(&mut s, c);
             Ok((q(med1) + q(med2)) / 2.0)
         }
     }
@@ -193,9 +193,9 @@ impl<'a, T> Median<'a, T> for &'a [T] {
         };
         let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
-            Ok(Medians::Odd(oddmed_by(&mut s, 0..n, c)))
+            Ok(Medians::Odd(oddmedian_by(&mut s, c)))
         } else {
-            Ok(Medians::Even(evenmed_by(&mut s, 0..n, c)))
+            Ok(Medians::Even(evenmedian_by(&mut s, c)))
         }
     }
 
@@ -204,7 +204,17 @@ impl<'a, T> Median<'a, T> for &'a [T] {
         Ok(self.iter().map(|s| q(s) - centre).collect())
     }
     /// We define median based correlation as cosine of an angle between two
-    /// zero median vectors (analogously to Pearson's zero mean vectors) 
+    /// zero median vectors (analogously to Pearson's zero mean vectors)
+    /// # Example
+    /// ```
+    /// use medians::{Medianf64,Median};
+    /// use core::convert::identity;
+    /// use core::cmp::Ordering::*;
+    /// let v1 = vec![1_f64,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.];
+    /// let v2 = vec![14_f64,1.,13.,2.,12.,3.,11.,4.,10.,5.,9.,6.,8.,7.];
+    /// assert_eq!(v1.medf_correlation(&v2).unwrap(),-0.1076923076923077);
+    /// assert_eq!(v1.med_correlation(&v2,&mut |a,b| a.total_cmp(b),|&a| identity(a)).unwrap(),-0.1076923076923077);
+    /// ```
     fn med_correlation(
         self,
         v: Self,

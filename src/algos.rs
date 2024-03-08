@@ -1,38 +1,7 @@
-use crate::{merror, Me};
 use core::cmp::{Ordering, Ordering::*};
 use std::ops::Range;
-
-/// Partitions `s: &mut [&T]` within range `rng`, using comparator `c`.
-/// Returns the boundaries of the rearranged partitions, (eqstart,gtstart), where  
-/// `rng.start..eqstart` (may be empty) contains references to items lesser than the pivot,  
-/// `eqstart..gtstart`are items equal to the pivot,  
-/// `gtstart..rng.end` (may be empty) contains references to items greater than the pivot.
-pub fn partit<'a,T>(
-    s: &mut [&'a T],
-    pivot: &'a T,
-    rng: &Range<usize>,
-    c: &mut impl FnMut(&T, &T) -> Ordering,
-) -> (usize, usize) { 
-    let mut eqstart = rng.start;
-    let mut gtstart = eqstart;
-    for t in rng.start..rng.end {
-        match c(s[t], pivot) {
-            Less => {
-                s[eqstart] = s[t];
-                eqstart += 1;
-                s[t] = s[gtstart];
-                gtstart += 1;
-            }
-            Equal => { 
-                s[t] = s[gtstart];
-                gtstart += 1;
-            }
-            Greater => (),
-        }
-    }
-    for e in eqstart..gtstart { s[e] = pivot; }
-    (eqstart, gtstart)
-}
+use indxvec::Mutops;
+use crate::{Me,merror};
 
 /// Scan a slice of f64s for NANs
 pub fn nans(v: &[f64]) -> bool {
@@ -45,28 +14,28 @@ pub fn nans(v: &[f64]) -> bool {
 }
 
 /// kth item from rng (ascending or descending, depending on `c`)
-pub fn best1_k<T, F>(s: &[T], k: usize, rng: Range<usize>, c: F) -> &T
-where
-    F: Fn(&T, &T) -> Ordering,
-{
-    let n = rng.len();
-    assert!((k > 0) & (k <= n));
-    let mut k_sorted: Vec<&T> = s.iter().skip(rng.start).take(k).collect();
-    k_sorted.sort_unstable_by(|&a, &b| c(a, b));
-    let mut k_max = k_sorted[k - 1];
-    for si in s.iter() {
-        if c(si, k_max) == Less {
-            let insert_pos = match k_sorted.binary_search_by(|j| c(j, si)) {
-                Ok(ins) => ins + 1,
-                Err(ins) => ins,
-            };
-            k_sorted.insert(insert_pos, si);
-            k_sorted.pop();
-            k_max = k_sorted[k - 1];
-        };
-    }
-    k_max
-}
+pub fn best1_k<T,F>(s: &[T], k: usize, rng: Range<usize>, c: F) -> &T
+   where
+       F: Fn(&T, &T) -> Ordering,
+   {
+       let n = rng.len();
+       assert!((k > 0) & (k <= n));
+       let mut k_sorted: Vec<&T> = s.iter().skip(rng.start).take(k).collect();
+       k_sorted.sort_unstable_by(|&a, &b| c(a, b));
+       let mut k_max = k_sorted[k - 1];
+       for si in s.iter() {
+           if c(si, k_max) == Less {
+               let insert_pos = match k_sorted.binary_search_by(|j| c(j, si)) {
+                   Ok(ins) => ins + 1,
+                   Err(ins) => ins,
+               };
+               k_sorted.insert(insert_pos, si);
+               k_sorted.pop();
+               k_max = k_sorted[k - 1];
+           };
+       }
+       k_max
+   }
 
 /// Index of the middling value of four refs. Makes only three comparisons
 fn middling(
@@ -85,7 +54,7 @@ fn middling(
     }
 }
 
-/// Minimum value within a range in a slice.
+/// Minimum value within a range in a slice
 /// Finds maximum, when arguments of c are swapped in the function call: `|a,b| c(b,a)`
 pub fn min<'a, T>(s: &[&'a T], rng: Range<usize>, c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
     let mut min = s[rng.start];
@@ -121,8 +90,8 @@ pub fn min2<'a, T>(
     (min1, min2)
 }
 
-/// Measures errors from centre (for testing purposes).
-/// Requires quantising to f64 for accuracy.
+/// measure errors from centre (for testing)
+/// requires quantising to f64 for accuracy
 pub fn qbalance<T>(s: &[T], centre: &f64, q: impl Fn(&T) -> f64) -> i64 {
     let mut bal = 0_i64;
     let mut eq = 0_i64;
@@ -179,29 +148,24 @@ fn evenmedianu8(s: &[u8]) -> f64 {
             continue;
         };
         cummulator += hist;
-        if firstres {
-            if need < cummulator {
-                res = i as f64;
-                break;
-            }; // cummulator exceeds need, found both items
-            if need == cummulator {
-                // found first item (last in this bucket)
-                res = i as f64;
+        if firstres {       
+            if need < cummulator {  res = i as f64; break; }; // cummulator exceeds need, found both items
+            if need == cummulator { // found first item (last in this bucket)
+                res = i as f64;       
                 firstres = false;
                 continue; // search for the second item
             };
-        } else {
-            // the second item is in the first following non-zero bucket
+        } else { // the second item is in the first following non-zero bucket
             res += i as f64;
             res /= 2.0;
             break;
         }; // found the second
-    }
+    };
     res
 }
 
 /// Median of primitive type u8 by fast radix search
-pub fn medianu8(s: &[u8]) -> Result<f64, Me> {
+pub fn medianu8(s:&[u8]) -> Result<f64, Me> {
     let n = s.len();
     match n {
         0 => return merror("size", "median: zero length data")?,
@@ -217,26 +181,22 @@ pub fn medianu8(s: &[u8]) -> Result<f64, Me> {
 }
 
 /// Median of odd sized generic data with Odering comparisons by custom closure
-pub(super) fn oddmed_by<'a, T>(
-    s: &mut [&'a T],
-    mut rng: Range<usize>,
-    c: &mut impl FnMut(&T, &T) -> Ordering,
-) -> &'a T {
-    let need = rng.len() / 2; // median target position in fully partitioned set
+pub(super) fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
+    let mut rng = 0..s.len();
+    let need = s.len() / 2; // median target position in fully partitioned set
     loop {
-        let n = rng.len();
-        let pivotref = if n > 99 {
-            oddmed_by(s, rng.start..rng.start + n / 20, c) 
-        } else {
-            s[middling(
-                rng.start,
-                rng.start + 1,
-                rng.end - 2,
-                rng.end - 1,
-                &mut |a, b| c(s[a], s[b]),
-            )] 
+        let pivotsub = middling(
+            rng.start,
+            rng.start + 1,
+            rng.end - 2,
+            rng.end - 1,
+            &mut |a, b| c(s[a], s[b]),
+        );
+        if pivotsub != rng.start {
+            s.swap(rng.start, pivotsub);
         };
-        let (eqsub, gtsub) = partit(s, pivotref, &rng, c);
+        let pivotref = s[rng.start];
+        let (eqsub, gtsub) = <&mut [T]>::part(s, &rng, c);
         // well inside lt partition, iterate on it
         if need + 2 < eqsub {
             rng.end = eqsub;
@@ -268,43 +228,39 @@ pub(super) fn oddmed_by<'a, T>(
         rng.start = gtsub;
     }
 }
+
 /// Median of even sized generic data with Odering comparisons by custom closure
-pub(super) fn evenmed_by<'a, T>(
+pub(super) fn evenmedian_by<'a, T>(
     s: &mut [&'a T],
-    mut rng: Range<usize>,
     c: &mut impl FnMut(&T, &T) -> Ordering,
 ) -> (&'a T, &'a T) {
+    let mut rng = 0..s.len();
     let need = s.len() / 2 - 1; // median target position in fully partitioned set
-    loop { 
-        let n = rng.len();
-        let pivotref = if n > 99 {
-                oddmed_by(s, rng.start..rng.start + n / 20, c) 
-            } else {
-                s[middling(
-                    rng.start,
-                    rng.start + 1,
-                    rng.end - 2,
-                    rng.end - 1,
-                    &mut |a, b| c(s[a], s[b]),
-                )] 
-            };
-        let (eqsub, gtsub) = partit(s, pivotref, &rng, c);
+    loop {
+        let pivotsub = middling(
+            rng.start,
+            rng.start + 1,
+            rng.end - 2,
+            rng.end - 1,
+            &mut |a, b| c(s[a], s[b]),
+        );
+        if pivotsub != rng.start {
+            s.swap(rng.start, pivotsub);
+        };
+        let pivotref = s[rng.start];
+        let (eqsub, gtsub) = <&mut [T]>::part(s, &rng, c);
         // well inside lt partition, iterate on it narrowing the range
         if need + 2 < eqsub {
             rng.end = eqsub;
             continue;
         };
-        // penultimate place in lt partition:
+        // penultimate place in lt partition, solution:
         if need + 2 == eqsub {
             // swapping comparison arguments to get two maxima
             let (m1, m2) = min2(s, rng.start..eqsub, &mut |a, b| c(b, a));
             return (m2, m1);
         };
-        // first place in gt partition, the solution are its two minima
-        if need == gtsub {
-            return min2(s, gtsub..rng.end, c);
-        }; 
-        // last place in the lt partition:
+        // last place in the lt partition, solution:
         if need + 1 == eqsub {
             // swapped comparison arguments to get maximum
             return (min(s, rng.start..eqsub, &mut |a, b| c(b, a)), pivotref);
@@ -316,6 +272,10 @@ pub(super) fn evenmed_by<'a, T>(
         // last place in equals partition
         if need + 1 == gtsub {
             return (pivotref, min(s, gtsub..rng.end, c));
+        };
+        // first place in gt partition, the solution are its two minima
+        if need == gtsub {
+            return min2(s, gtsub..rng.end, c);
         };
         // inside gt partition, iterate on it, narrowing the range
         rng.start = gtsub;
