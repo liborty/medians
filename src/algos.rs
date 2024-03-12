@@ -3,7 +3,7 @@ use std::ops::Range;
 use indxvec::Mutops;
 use crate::{Me,merror};
 
-/// middle valued ref of three, using at most three comparisons
+/// index of middle valued item of three, using at most three comparisons
 fn midof3<T>(s: &[&T],indx0: usize, indx1: usize, indx2: usize,c: &mut impl FnMut(&T, &T) -> Ordering) -> usize {
     let (min, max) = if c(s[indx0],s[indx1]) == Less { 
         (indx0,indx1)
@@ -182,8 +182,8 @@ pub(super) fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) ->
     let need = s.len() / 2; // median target position in fully partitioned set
     loop {
         let mut pivotsub = midof3(s, rng.start, rng.start+need, rng.end-1, c);
-        if rng.len() == 3 { return s[pivotsub]; } 
-        else if rng.len() > 100 {
+        if rng.len() == 3 { return s[pivotsub]; }; 
+        if rng.len() > 100 {
             let pivotsub2 = midof3(s, rng.start+1, rng.start+need+1, rng.end-2, c);
             let pivotsub3 = midof3(s, rng.start+2, rng.start+need+2, rng.end-3, c);
             pivotsub = midof3(s,pivotsub,pivotsub2,pivotsub3, c);
