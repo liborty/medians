@@ -39,7 +39,7 @@ Nonetheless, especially on large datasets, one should devote certain limited fra
 
 * Linear complexity.
 * Fast (in-place) iterative partitioning into three subranges (lesser,equal,greater), minimising data movements and memory management.
-* Simple pivot selection on small datasets. We define the `middling` value of a sample of four as one of the middle pair of ordered items. This is found in only three comparisons. A `middling` pivot is enough to guarantee convergence of iterative search for the median. Really poor pivots occur only rarely.
+* Simple pivot selection strategy: median of three samples (requires only three comparisons). Really poor pivots occur only rarely during the iterative process. For longer data, we do deploy median of three medians but again only on a small sub sample of data.
 
 ## Trait Medianf64
 

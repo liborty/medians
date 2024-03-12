@@ -4,6 +4,23 @@ use core::ops::{Deref, Neg};
 
 const FSIGN: u64 = 0x8000_0000_0000_0000;
 
+/// Index of the middling value of four refs. Makes only three comparisons
+fn middling(
+    idx0: usize,
+    idx1: usize,
+    idx2: usize,
+    idx3: usize,
+    c: &mut impl FnMut(usize, usize) -> Ordering,
+) -> usize {
+    let max1 = if c(idx0, idx1) == Less { idx1 } else { idx0 };
+    let max2 = if c(idx2, idx3) == Less { idx3 } else { idx2 };
+    if c(max1, max2) == Less {
+        max1
+    } else {
+        max2
+    }
+}
+
 /// Copies a slice of f64s, removing any NANs from it.
 /// It is advisable to test with `non_nans` first, as there may be none
 pub fn scrub_nans(v: &[f64]) -> Vec<f64> {

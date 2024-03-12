@@ -174,22 +174,23 @@ fn errors() -> Result<(), Me> {
     Ok(())
 }
 
-const NAMES: [&str; 3] = ["median_by", "best_k", "medf_unchecked"];
+const NAMES: [&str; 2] = ["median_by","medf_unchecked"];
 
-const CLOSURESF64: [fn(&[f64]); 3] = [
+const CLOSURESF64: [fn(&[f64]); 2] = [
     |v: &[_]| {
         v.median_by(&mut <f64>::total_cmp)
             .expect("even median closure failed");
     },
     |v: &[_]| {
+        v.medf_unchecked();
+    },
+    /*
+    |v: &[_]| {
         let mut sorted: Vec<&f64> = v.iter().collect();
         sorted.sort_unstable_by(|&a, &b| a.total_cmp(b));
         // sorted[sorted.len()/2];
     },
-    |v: &[_]| {
-        v.medf_unchecked();
-    },
-    /*
+
     |v: &[_]| {
         v.qmedian_by(&mut <f64>::total_cmp,|&x| x)
         .expect("even median closure failed");
@@ -208,5 +209,5 @@ const CLOSURESF64: [fn(&[f64]); 3] = [
 fn comparison() {
     // set_seeds(0); // intialise random numbers generator
     // Rnum encapsulates the type of random data to be generated
-    benchf64(3..100, 1, 10, &NAMES, &CLOSURESF64);
+    benchf64(93..110, 1, 10, &NAMES, &CLOSURESF64);
 }

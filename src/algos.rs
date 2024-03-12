@@ -3,6 +3,19 @@ use std::ops::Range;
 use indxvec::Mutops;
 use crate::{Me,merror};
 
+/// middle valued ref of three, using at most three comparisons
+fn midof3<T>(s: &[&T],indx0: usize, indx1: usize, indx2: usize,c: &mut impl FnMut(&T, &T) -> Ordering) -> usize {
+    let (min, max) = if c(s[indx0],s[indx1]) == Less { 
+        (indx0,indx1)
+    } else {
+        (indx1,indx0)
+    };
+    let lastref = s[indx2];
+    if c(s[min],lastref) != Less { return min; };
+    if c(lastref,s[max]) != Less { return max; };
+    indx2
+}
+
 /// Scan a slice of f64s for NANs
 pub fn nans(v: &[f64]) -> bool {
     for &f in v {
@@ -36,23 +49,6 @@ pub fn best1_k<T,F>(s: &[T], k: usize, rng: Range<usize>, c: F) -> &T
        }
        k_max
    }
-
-/// Index of the middling value of four refs. Makes only three comparisons
-fn middling(
-    idx0: usize,
-    idx1: usize,
-    idx2: usize,
-    idx3: usize,
-    c: &mut impl FnMut(usize, usize) -> Ordering,
-) -> usize {
-    let max1 = if c(idx0, idx1) == Less { idx1 } else { idx0 };
-    let max2 = if c(idx2, idx3) == Less { idx3 } else { idx2 };
-    if c(max1, max2) == Less {
-        max1
-    } else {
-        max2
-    }
-}
 
 /// Minimum value within a range in a slice
 /// Finds maximum, when arguments of c are swapped in the function call: `|a,b| c(b,a)`
@@ -185,17 +181,16 @@ pub(super) fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) ->
     let mut rng = 0..s.len();
     let need = s.len() / 2; // median target position in fully partitioned set
     loop {
-        let pivotsub = middling(
-            rng.start,
-            rng.start + 1,
-            rng.end - 2,
-            rng.end - 1,
-            &mut |a, b| c(s[a], s[b]),
-        );
+        let mut pivotsub = midof3(s, rng.start, rng.start+need, rng.end-1, c);
+        if rng.len() == 3 { return s[pivotsub]; } 
+        else if rng.len() > 100 {
+            let pivotsub2 = midof3(s, rng.start+1, rng.start+need+1, rng.end-2, c);
+            let pivotsub3 = midof3(s, rng.start+2, rng.start+need+2, rng.end-3, c);
+            pivotsub = midof3(s,pivotsub,pivotsub2,pivotsub3, c);
+        }
         if pivotsub != rng.start {
             s.swap(rng.start, pivotsub);
         };
-        let pivotref = s[rng.start];
         let (eqsub, gtsub) = <&mut [T]>::part(s, &rng, c);
         // well inside lt partition, iterate on it
         if need + 2 < eqsub {
@@ -214,7 +209,7 @@ pub(super) fn oddmedian_by<'a, T>(s: &mut [&'a T], c: &mut impl FnMut(&T, &T) ->
         };
         if need < gtsub {
             // within equals partition, return the pivot
-            return pivotref;
+            return s[pivotsub];
         };
         // first place in gt partition, the solution is its minimum
         if need == gtsub {
@@ -236,14 +231,12 @@ pub(super) fn evenmedian_by<'a, T>(
 ) -> (&'a T, &'a T) {
     let mut rng = 0..s.len();
     let need = s.len() / 2 - 1; // median target position in fully partitioned set
-    loop {
-        let pivotsub = middling(
-            rng.start,
-            rng.start + 1,
-            rng.end - 2,
-            rng.end - 1,
-            &mut |a, b| c(s[a], s[b]),
-        );
+    loop { 
+        let mut pivotsub = midof3(s,rng.start,rng.start+need, rng.end-1, c);
+        if rng.len() > 100 { 
+            let pivotsub2 = midof3(s, rng.start+1, rng.start+need+1, rng.end-2, c);
+            let pivotsub3 = midof3(s, rng.start+2, rng.start+need+2, rng.end-3, c);
+            pivotsub = midof3(s,pivotsub,pivotsub2,pivotsub3, c); };
         if pivotsub != rng.start {
             s.swap(rng.start, pivotsub);
         };
