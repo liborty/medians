@@ -12,6 +12,7 @@ keywords = ["statistics","median"]
 categories = ["science","mathematics","algorithms"]
 include = [
     "src/lib.rs",
+    "src/implementations.rs
     "src/algos.rs",
     "src/error.rs",
     "Cargo.toml",
