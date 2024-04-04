@@ -22,7 +22,7 @@ Short primitive types are best dealt with by radix search. We have implemented i
 
 ```rust
 /// Median of primitive type u8 by fast radix search
-pub fn medianu8( s:&[u8] ) -> Result<f64, Me> { ... }
+pub fn medianu8(s: &[u8]) -> Result<ConstMedians<u8>, Me>
 ```
 
 More complex data types require general comparison search. Median can be found naively by sorting the list of data and then picking its midpoint. The best comparison sort algorithms have complexity `O(n*log(n))`. However, faster median algorithms, with complexity `O(n)` are possible. They are based on the observation that data need to be sorted, only partitioned and counted off. Therefore, the naive sort method can not compete and has been deleted as of version 2.0.0.
@@ -33,11 +33,15 @@ However, finding the best pivot is not the main objective. Rather, the objective
 
 Let our average ratio of items remaining after one partitioning be `rs` and the Floyd-Rivest's be `rf`. Typically, `1/2 <= rf <= rs < 1`, i.e. `rf` is more optimal, being nearer to the perfect partitioning ratio of `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `rs^2 < rf`, which is perfectly possible and seems to be born out in practice. For example, `rf=0.65` (nearly optimal), `rs=0.8` (deeply suboptimal), yet `rs^2 < rf`.
 
-Nonetheless, especially on large datasets, one may have to devote some fraction of the overall computational effort to pivot selection.
+Nonetheless, on large datasets, we do devote some of the overall computational effort to pivot selection.
 
-We also introduce new algorithm, implemented as function `medianu64`. It is faster on `u64` data than the pivoting general purpose `median_by`. It partitions by individual bits values, thus totally sidestepping the expense of pivot estimation. In practice, it converges well. Of course, if the data happens to be all bunched up within a small range of values, it will be somewhat slower. Then one might want to linearly transform the data and deploy the superfast `medianu8`.
+We also introduce new algorithm, implemented as function `medianu64`:
 
-### Summary of he main features of our median algorithm
+    /// Fast medians of u64 end type by binary partitioning
+    pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me> 
+  on `u64` data, this is about twice as fast as the general purpose pivoting of `median_by`. The data is partitioned by individual bits values, thus totally sidestepping the expense of pivot estimation. In practice, the algorithm converges well. Of course, if the data happens to be all bunched up within a small range of values, it will be somewhat slower. Then one might want to linearly transform the data and deploy the superfast `medianu8`.
+
+### Summary of he main features of our general median algorithm
 
 * Linear complexity.
 * Fast (in-place) iterative partitioning into three subranges (lesser,equal,greater), minimising data movements and memory management.
