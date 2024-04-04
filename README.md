@@ -29,11 +29,13 @@ More complex data types require general comparison search. Median can be found n
 
 Currently considered to be the 'state of the art' comparison algorithm is Floyd-Rivest (1975): Median of Medians. This divides the data into groups of five items, finds a median of each group by sort and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. Such pivot will produce reasonably good partitioning, though not necessarily perfect. Therefore, iteration is still necessary.
 
-However, finding the best pivot is not the main objective. Rather, it is to eliminate (count off) eccentric data items as fast as possible. Therefore, the expense of choosing the pivot must be carefully considered. It is possible to use less optimal pivot, and yet to find the median faster (on average).
+However, finding the best pivot is not the main objective. Rather, the objective is to eliminate (count off) eccentric data items as fast as possible. Therefore, the expense of estimating the pivot is highly relevant. It is possible to use less optimal pivot, yet to find the medians faster on average. Central to this is efficient partitioning.
 
 Let our average ratio of items remaining after one partitioning be `rs` and the Floyd-Rivest's be `rf`. Typically, `1/2 <= rf <= rs < 1`, i.e. `rf` is more optimal, being nearer to the perfect partitioning ratio of `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `rs^2 < rf`, which is perfectly possible and seems to be born out in practice. For example, `rf=0.65` (nearly optimal), `rs=0.8` (deeply suboptimal), yet `rs^2 < rf`.
 
-Nonetheless, especially on large datasets, one should devote certain limited fraction of the overall computational effort to pivot selection.
+Nonetheless, especially on large datasets, one may have to devote some fraction of the overall computational effort to pivot selection.
+
+We also introduce new algorithm, implemented as function `medianu64`. It is faster on `u64` data than the pivoting general purpose `median_by`. It partitions by individual bits values, thus totally sidestepping the expense of pivot estimation. In practice, it converges well. Of course, if the data happens to be all bunched up within a small range of values, it will be somewhat slower. Then one might want to linearly transform the data and deploy the superfast `medianu8`.
 
 ### Summary of he main features of our median algorithm
 
@@ -112,6 +114,8 @@ pub trait Median<'a, T> {
 ```
 
 ## Release Notes
+
+**Version 3.0.10** - Added `medianu64`. It is faster on u64 data than the general purpose `median_by`. It is using a new algorithm that partitions by bits, thus avoiding the complexities of pivot estimation.
 
 **Version 3.0.9** - Improved pivot estimation for large data sets.
 

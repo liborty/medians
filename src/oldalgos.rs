@@ -32,7 +32,12 @@ pub fn scrub_nans(v: &[f64]) -> Vec<f64> {
 /// Converts one f64, including NaNs etc., to u64, maintaining order
 pub fn to_u64(f: f64) -> u64 { 
     let u: u64 = f.to_bits();
-    if (u >> 63) == 1 { u^FSIGN } else { !u }
+    if (u >> 63) == 1 { u^FIRST_BIT } else { !u }
+}
+
+/// Converts one u64 to f64 (inverse of `to_u64`).
+pub fn to_f64(u: u64) -> f64 {
+    f64::from_bits( if (u >> 63) == 1 { !u } else { u^FIRST_BIT } )
 }
 
 /// Converts slice of f64s, including NaNs etc., to Vec<&u64>, maintaining order
@@ -45,11 +50,6 @@ pub fn to_clean_u64s(v: &[f64]) -> Vec<u64> {
     v.iter()
         .filter_map(|&f| if f.is_nan() { None } else { Some(to_u64(f)) } )
         .collect()
-}
-
-/// Converts f64 to u64 (inverse of `to_u64`).
-pub fn to_f64(u: u64) -> f64 {
-    f64::from_bits( if (u >> 63) == 1 { !u } else { u^FSIGN } )
 }
 
 /// Converts u64s to f64s (inverse of `to_u64s`).

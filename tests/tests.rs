@@ -7,7 +7,18 @@ use ran::*;
 use core::cmp::{Ordering, Ordering::*};
 use std::convert::From;
 use std::error::Error;
-use times::{benchf64, benchu64, benchu8, mutbenchf64};
+use times::{benchf64, benchu64, benchu8, mutbenchf64, mutbenchu64};
+
+#[test]
+fn partbin() -> Result<(), Me> {
+    let mut data = [10_u64,9,8,7,6,5,4,3,2,1];
+    println!("{}",data.gr());
+    let n = data.len();
+    part_binary(&mut data, &(0..n), 3);
+    println!("{}",data.gr());
+    println!("Odd Median: {}",evenmedianu64(&mut data).gr());
+    Ok(())
+}
 
 #[test]
 fn parting() -> Result<(), Me> {
@@ -68,9 +79,10 @@ fn text() {
         Tee hee heee, quoth he.";
     let v = song.split(' ').collect::<Vec<_>>();
     println!("{}", v.gr()); // Display
+    // v.mutisort(0..v.len(),|&a,&b| a.len().cmp(&b.len()));
     println!(
-        "Hash sorted by word lengths: {}",
-        v.sorth(|s| s.len() as f64, true).gr()
+        "Insert log sorted by word lengths: {}", 
+        v.isort_refs(0..v.len(),|&a,&b| a.len().cmp(&b.len())).gr() 
     );
     println!(
         "Median word(s) by length: {GR}{}{UN}",
@@ -147,23 +159,22 @@ fn errors() -> Result<(), Me> {
         trait Eq: PartialEq<Self> {}
         impl Eq for f64 {}
         for _ in 0..n {
-            let Ok(v) = ranv_u8(d) else {
+            let Ok(mut v) = ranv_u64(d) else {
                 return merror("other", "Random vec genertion failed");
             };
-            let med = medianu8(&v)?; // random vector
-                                     // v.as_slice().medf_unchecked();
+            let med:f64 = medianu64(&mut v)?.into();
             error += qbalance(&v, &med, |&f| f as f64);
         }
         println!("Even length {GR}{d}{UN}, repeats: {GR}{n}{UN}, errors: {GR}{error}{UN}");
         error = 0_i64;
         for _ in 0..n {
-            let Ok(v) = ranv_u8(d + 1) else {
+            let Ok(mut v) = ranv_u64(d + 1) else {
                 return merror("other", "Random vec genertion failed");
-            }; // random vector
-            let med = medianu8(&v)?;
+            };
             // v
             //    .as_slice()
             //    .medf_unchecked();
+            let med:f64 = medianu64(&mut v)?.into();
             error += qbalance(&v, &med, |&f| f as f64);
         }
         println!(
@@ -174,16 +185,26 @@ fn errors() -> Result<(), Me> {
     Ok(())
 }
 
-const NAMES: [&str; 2] = ["median_by","medf_unchecked"];
+const NAMES: [&str; 3] = ["median_by","medf_checked","medianu64"];
 
-const CLOSURESF64: [fn(&[f64]); 2] = [
-    |v: &[_]| {
-        v.median_by(&mut <f64>::total_cmp)
-            .expect("even median closure failed");
+const CLOSURESU64: [fn(&mut [u64]); 3] = [
+    |v: &mut [_]| {
+        v.median_by(&mut <u64>::cmp)
+            .expect("median_by closure failed");
     },
-    |v: &[_]| {
-        v.medf_unchecked();
+
+    |v: &mut [_]| {
+        let vf:Vec<f64> = v.iter().map(|&x| x as f64).collect();
+        vf.medf_checked()
+        .expect("medf_checked found NaN");
     },
+
+    |v: &mut [_]| {
+        medianu64(v)
+        .expect("medianu64 found NaN");
+    },
+
+    
     /*
     |v: &[_]| {
         let mut sorted: Vec<&f64> = v.iter().collect();
@@ -209,5 +230,5 @@ const CLOSURESF64: [fn(&[f64]); 2] = [
 fn comparison() {
     // set_seeds(0); // intialise random numbers generator
     // Rnum encapsulates the type of random data to be generated
-    benchf64(93..110, 1, 10, &NAMES, &CLOSURESF64);
+    mutbenchu64(100000..100010, 1, 10, &NAMES, &CLOSURESU64);
 }

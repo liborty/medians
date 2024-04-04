@@ -12,6 +12,7 @@ pub mod implementations;
 
 use core::cmp::Ordering;
 use core::fmt::Debug;
+use crate::algos::{oddmedianu8,evenmedianu8,oddmedianu64,evenmedianu64};
 
 /// Shorthand type for medians errors with message payload specialized to String
 pub type Me = MedError<String>;
@@ -38,8 +39,7 @@ pub fn merror<T>(kind: &str, msg: impl Into<String>) -> Result<T,MedError<String
     }
 }
 
-
-/// Enum for results of odd/even medians
+/// Enum for results of odd/even medians of complex endtypes
 pub enum Medians<'a, T> {
     /// Odd sized data results in a single median
     Odd(&'a T),
@@ -47,10 +47,47 @@ pub enum Medians<'a, T> {
     Even((&'a T, &'a T)),
 }
 
+/// Enum for results of odd/even medians with simple endtypes
+pub enum ConstMedians<T> {
+    /// Odd sized data results in a single median
+    Odd(T),
+    /// Even sized data results in a pair of (centered) medians
+    Even((T,T))
+}
+
+/// Fast medians of u8 end type by fast radix search
+pub fn medianu8(s: &[u8]) -> Result<ConstMedians<u8>, Me> {
+    let n = s.len();
+    match n {
+        0 => return merror("size", "median: zero length data")?,
+        1 => return Ok(ConstMedians::Odd(s[0])),
+        2 => return Ok(ConstMedians::Even((s[0],s[1]))),
+        _ => (),
+    };
+    if (n & 1) == 1 {
+        Ok(ConstMedians::Odd(oddmedianu8(s)))
+    } else {
+        Ok(ConstMedians::Even(evenmedianu8(s)))
+    }
+}
+
+/// Fast medians of u64 end type by binary partitioning
+pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me> {
+    let n = s.len();
+    match n {
+        0 => return merror("size", "medu: zero length data"),
+        1 => return Ok( ConstMedians::Odd(s[0]) ),
+        2 => return Ok( ConstMedians::Even((s[0], s[1])) ),
+        _ => (),
+    };
+    if (n & 1) == 1 { Ok( ConstMedians::Odd(oddmedianu64(s)) ) }
+    else { Ok(ConstMedians::Even(evenmedianu64(s))) }
+}
+
 /// Fast 1D medians of floating point data, plus related methods
 pub trait Medianf64 {
     /// Median of f64s, NaNs removed
-    fn medf_checked(self) -> Result<f64, Me>;
+    fn medf_checked(self) -> Result<f64, Me>;  
     /// Median of f64s, including NaNs
     fn medf_unchecked(self) -> f64;
     /// Iterative weighted median
