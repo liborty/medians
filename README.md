@@ -1,4 +1,6 @@
-# Medians [![crates.io](https://img.shields.io/crates/v/medians?logo=rust)](https://crates.io/crates/medians) [![crates.io](https://img.shields.io/crates/d/medians?logo=rust)](https://crates.io/crates/medians) [!["GitHub last commit"](https://img.shields.io/github/last-commit/liborty/medians/HEAD?logo=github)](https://github.com/liborty/medians) [![Actions Status](https://github.com/liborty/medians/workflows/test/badge.svg)](https://github.com/liborty/random/actions)
+# Medians
+
+[![crates.io](https://img.shields.io/crates/v/medians?logo=rust)](https://crates.io/crates/medians) [![crates.io](https://img.shields.io/crates/d/medians?logo=rust)](https://crates.io/crates/medians) [!["GitHub last commit"](https://img.shields.io/github/last-commit/liborty/medians/HEAD?logo=github)](https://github.com/liborty/medians) [![Actions Status](https://github.com/liborty/medians/workflows/test/badge.svg)](https://github.com/liborty/random/actions)
 
 ## **by Libor Spacek**
 
@@ -25,11 +27,11 @@ Short primitive types are best dealt with by radix search. We have implemented i
 pub fn medianu8(s: &[u8]) -> Result<ConstMedians<u8>, Me>
 ```
 
-More complex data types require general comparison search. Median can be found naively by sorting the list of data and then picking its midpoint. The best comparison sort algorithms have complexity `O(n*log(n))`. However, faster median algorithms, with complexity `O(n)` are possible. They are based on the observation that data need to be sorted, only partitioned and counted off. Therefore, the naive sort method can not compete and has been deleted as of version 2.0.0.
+More complex data types require general comparison search, see `median_by`. Median can be found naively by sorting the list of data and then picking its midpoint. The best comparison sort algorithms have complexity `O(n*log(n))`. However, faster median algorithms with complexity `O(n)` are possible. They are based on the observation that data need to be all sorted, only partitioned and counted off. Therefore, the naive sort method can not compete and has been deleted as of version 2.0.0.
 
-Currently considered to be the 'state of the art' comparison algorithm is Floyd-Rivest (1975): Median of Medians. This divides the data into groups of five items, finds a median of each group by sort and then recursively finds medians of five of these medians, and so on, until only one is left. This is then used as a pivot for the partitioning of the original data. Such pivot will produce reasonably good partitioning, though not necessarily perfect. Therefore, iteration is still necessary.
+Currently considered to be the 'state of the art' comparison algorithm is Floyd-Rivest (1975): Median of Medians. This divides the data into groups of five items, finds median of each group by sort, then finds medians of five of these medians, and so on, until only one remains. This is then used as the pivot for partitioning of the original data. Such pivot will produce good partitioning, though not perfect. Counting off and iterating is still necessary.
 
-However, finding the best pivot is not the main objective. Rather, the objective is to eliminate (count off) eccentric data items as fast as possible. Therefore, the expense of estimating the pivot is highly relevant. It is possible to use less optimal pivot, yet to find the medians faster on average. Central to this is efficient partitioning.
+However, finding the best pivot estimate is not the main objective. The real objective is to eliminate (count off) eccentric data items as fast as possible. Therefore, the expense of estimating the pivot is highly relevant. It is possible to use less optimal pivots, yet to find the medians faster on average. In any case, efficient partitioning is a must.
 
 Let our average ratio of items remaining after one partitioning be `rs` and the Floyd-Rivest's be `rf`. Typically, `1/2 <= rf <= rs < 1`, i.e. `rf` is more optimal, being nearer to the perfect partitioning ratio of `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `rs^2 < rf`, which is perfectly possible and seems to be born out in practice. For example, `rf=0.65` (nearly optimal), `rs=0.8` (deeply suboptimal), yet `rs^2 < rf`.
 
@@ -40,13 +42,13 @@ We introduce another new algorithm, implemented as function `medianu64`:
     /// Fast medians of u64 end type by binary partitioning
     pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me>
 
-  on `u64` data, this is about twice as fast as the general purpose pivoting of `median_by`. The data is partitioned by individual bits values, totally sidestepping the expense of the pivot estimation. The algorithm converges well. When the data happens to be all bunched up within a small range of values, it will be somewhat slower. Then one might want to linearly transform the data and deploy the superfast `medianu8`.
+  on `u64` data, this runs about twice as fast as the general purpose pivoting of `median_by`. The data is partitioned by individual bit values, totally sidestepping the expense of the pivot estimation. The algorithm generally converges well. However, when the data happens to be all bunched up within a small range of values, it will slow down.
 
 ### Summary of he main features of our general median algorithm
 
 * Linear complexity.
 * Fast (in-place) iterative partitioning into three subranges (lesser,equal,greater), minimising data movements and memory management.
-* Simple pivot selection strategy: median of three samples (requires only three comparisons). Really poor pivots occur only rarely during the iterative process. For longer data, we do deploy median of three medians but again only on a small sub sample of data.
+* Simple pivot selection strategy: median of three samples (requires only three comparisons). Really poor pivots occur only rarely during the iterative process. For longer data, we deploy median of three medians.
 
 ## Trait Medianf64
 

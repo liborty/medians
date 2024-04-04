@@ -72,7 +72,8 @@ pub fn medianu8(s: &[u8]) -> Result<ConstMedians<u8>, Me> {
     }
 }
 
-/// Fast medians of u64 end type by binary partitioning
+/// Fast medians of u64 end type by binary partitioning.  
+/// Changes the order of the input data
 pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me> {
     let n = s.len();
     match n {
