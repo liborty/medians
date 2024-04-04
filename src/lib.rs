@@ -47,7 +47,8 @@ pub enum Medians<'a, T> {
     Even((&'a T, &'a T)),
 }
 
-/// Enum for results of odd/even medians with simple endtypes
+/// Enum for results of odd/even medians with simple numeric endtypes.
+/// Convert to a single f64 by applying `.into()`
 pub enum ConstMedians<T> {
     /// Odd sized data results in a single median
     Odd(T),

@@ -35,11 +35,12 @@ Let our average ratio of items remaining after one partitioning be `rs` and the 
 
 Nonetheless, on large datasets, we do devote some of the overall computational effort to pivot selection.
 
-We also introduce new algorithm, implemented as function `medianu64`:
+We introduce another new algorithm, implemented as function `medianu64`:
 
     /// Fast medians of u64 end type by binary partitioning
-    pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me> 
-  on `u64` data, this is about twice as fast as the general purpose pivoting of `median_by`. The data is partitioned by individual bits values, thus totally sidestepping the expense of pivot estimation. In practice, the algorithm converges well. Of course, if the data happens to be all bunched up within a small range of values, it will be somewhat slower. Then one might want to linearly transform the data and deploy the superfast `medianu8`.
+    pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me>
+
+  on `u64` data, this is about twice as fast as the general purpose pivoting of `median_by`. The data is partitioned by individual bits values, totally sidestepping the expense of the pivot estimation. The algorithm converges well. When the data happens to be all bunched up within a small range of values, it will be somewhat slower. Then one might want to linearly transform the data and deploy the superfast `medianu8`.
 
 ### Summary of he main features of our general median algorithm
 
