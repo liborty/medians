@@ -18,6 +18,17 @@ We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geome
 
 See [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs) for examples of usage. Their automatically generated output can also be found by clicking the 'test' icon at the top of this document and then examining the latest log.
 
+## Outline Usage
+
+Best methods/functions to be deployed, depending on the end type of data (i.e. type of the items within the input vector/slice).
+
+- `u8` -> function `medianu8`
+- `u64` -> function `medianu64`
+- `f64` -> methods of trait Medianf64
+- `T` custom quantisable to u64 -> method `uqmedian` of trait `Median`
+- `T` custom comparable by `c` -> method `qmedian_by` of trait `Median`
+- `T` custom comparable but not quantisable -> method `median_by` of trait `Median`.
+
 ## Algorithms Analysis
 
 Short primitive types are best dealt with by radix search. We have implemented it for `u8`:
@@ -39,16 +50,18 @@ Nonetheless, on large datasets, we do devote some of the overall computational e
 
 We introduce another new algorithm, implemented as function `medianu64`:
 
-    /// Fast medians of u64 end type by binary partitioning
-    pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me>
+```rust
+/// Fast medians of u64 end type by binary partitioning
+pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me>
+```
 
   on `u64` data, this runs about twice as fast as the general purpose pivoting of `median_by`. The data is partitioned by individual bit values, totally sidestepping the expense of the pivot estimation. The algorithm generally converges well. However, when the data happens to be all bunched up within a small range of values, it will slow down.
 
 ### Summary of he main features of our general median algorithm
 
-* Linear complexity.
-* Fast (in-place) iterative partitioning into three subranges (lesser,equal,greater), minimising data movements and memory management.
-* Simple pivot selection strategy: median of three samples (requires only three comparisons). Really poor pivots occur only rarely during the iterative process. For longer data, we deploy median of three medians.
+- Linear complexity.
+- Fast (in-place) iterative partitioning into three subranges (lesser,equal,greater), minimising data movements and memory management.
+- Simple pivot selection strategy: median of three samples (requires only three comparisons). Really poor pivots occur only rarely during the iterative process. For longer data, we deploy median of three medians.
 
 ## Trait Medianf64
 
@@ -103,9 +116,14 @@ pub trait Median<'a, T> {
         c: &mut impl FnMut(&T, &T) -> Ordering,
         q: impl Fn(&T) -> f64,
     ) -> Result<f64, Me>;
+    /// Median of types quantifiable to u64 by `q`, at the end converted to a single f64.  
+    /// For data that is already `u64`, use function `medianu64`
+    fn uqmedian(
+            self,
+            q: impl Fn(&T) -> u64,
+        ) -> Result<f64, Me>;
     /// Median by comparison `c`, returns odd/even result
-    fn median_by(self, c: &mut impl FnMut(&T, &T) -> Ordering) 
-        -> Result<Medians<'a, T>, Me>;
+    fn median_by(self, c: &mut impl FnMut(&T, &T) -> Ordering) -> Result<Medians<'a, T>, Me>;
     /// Zero mean/median data, produced by subtracting the centre
     fn zeroed(self, centre: f64, quantify: impl Fn(&T) -> f64) -> Result<Vec<f64>, Me>;
     /// Median correlation = cosine of an angle between two zero median Vecs
@@ -121,6 +139,8 @@ pub trait Median<'a, T> {
 ```
 
 ## Release Notes
+
+**Version 3.0.11** - Added method `uqmedian` to trait `Median` for types quantifiable to `u64` by some closure `q`.
 
 **Version 3.0.10** - Added `medianu64`. It is faster on u64 data than the general purpose `median_by`. It is using a new algorithm that partitions by bits, thus avoiding the complexities of pivot estimation.
 

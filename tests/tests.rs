@@ -185,23 +185,23 @@ fn errors() -> Result<(), Me> {
     Ok(())
 }
 
-const NAMES: [&str; 3] = ["median_by","medf_checked","medianu64"];
+const NAMES: [&str; 3] = ["median_by","medf_checked","uqmedian"];
 
-const CLOSURESU64: [fn(&mut [u64]); 3] = [
-    |v: &mut [_]| {
+const CLOSURESU64: [fn(&[u64]); 3] = [
+    |v: &[_]| {
         v.median_by(&mut <u64>::cmp)
             .expect("median_by closure failed");
     },
 
-    |v: &mut [_]| {
+    |v: &[_]| {
         let vf:Vec<f64> = v.iter().map(|&x| x as f64).collect();
         vf.medf_checked()
         .expect("medf_checked found NaN");
     },
 
-    |v: &mut [_]| {
-        medianu64(v)
-        .expect("medianu64 found NaN");
+    |v: &[_]| {
+        v.uqmedian(|&x| x)
+        .expect("uqmedian error");
     },
 
     
@@ -230,5 +230,5 @@ const CLOSURESU64: [fn(&mut [u64]); 3] = [
 fn comparison() {
     // set_seeds(0); // intialise random numbers generator
     // Rnum encapsulates the type of random data to be generated
-    mutbenchu64(100000..100010, 1, 10, &NAMES, &CLOSURESU64);
+    benchu64(100000..100010, 1, 10, &NAMES, &CLOSURESU64);
 }

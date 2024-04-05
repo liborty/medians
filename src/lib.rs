@@ -110,6 +110,12 @@ pub trait Median<'a, T> {
         c: &mut impl FnMut(&T, &T) -> Ordering,
         q: impl Fn(&T) -> f64,
     ) -> Result<f64, Me>;
+    /// Median of types quantifiable to u64 by `q`, at the end converted to a single f64.  
+    /// For data that is already `u64`, use function `medianu64`
+    fn uqmedian(
+            self,
+            q: impl Fn(&T) -> u64,
+        ) -> Result<f64, Me>;
     /// Median by comparison `c`, returns odd/even result
     fn median_by(self, c: &mut impl FnMut(&T, &T) -> Ordering) -> Result<Medians<'a, T>, Me>;
     /// Zero mean/median data, produced by subtracting the centre

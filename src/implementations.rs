@@ -29,7 +29,7 @@ where
             Medians::Odd(m) => {
                 write!(f, "{YL}odd median: {GR}{}{UN}", *m)
             }
-            Medians::Even((m1, m2)) => {
+            Medians::Even((m1,m2)) => {
                 write!(f, "{YL}even medians: {GR}{} {}{UN}", *m1, *m2)
             }
         }
@@ -208,6 +208,26 @@ impl<'a, T> Median<'a, T> for &'a [T] {
             let (med1, med2) = evenmedian_by(&mut s, c);
             Ok((q(med1) + q(med2)) / 2.0)
         }
+    }
+
+    /// Median of `&[T]`, quantifiable to u64's by `q`. Returns a single f64.
+    /// When T is a primitive type directly convertible to u64, use `as u64` as `q`.
+    /// When u64:From<T> is implemented, use `|x| x.into()` as `q`.
+    /// In all other cases, use custom quantification closure `q`.
+    /// When T is not quantifiable at all, use the ultimate `median_by` method.
+    fn uqmedian(
+        self,
+        q: impl Fn(&T) -> u64,
+    ) -> Result<f64, Me> {
+        let n = self.len();
+        match n {
+            0 => return merror("size", "uqmedian_by: zero length data"),
+            1 => return Ok(q(&self[0]) as f64),
+            2 => return Ok( (q(&self[0]) as f64 + q(&self[1]) as f64) / 2.0 ),
+            _ => (),
+        };
+        let mut s:Vec<u64> = self.iter().map(q).collect();
+        Ok(medianu64(&mut s)?.into())
     }
 
     /// Median(s) of unquantifiable type by general comparison closure
