@@ -25,9 +25,9 @@ Best methods/functions to be deployed, depending on the end type of data (i.e. t
 - `u8` -> function `medianu8`
 - `u64` -> function `medianu64`
 - `f64` -> methods of trait Medianf64
-- `T` custom quantisable to u64 -> method `uqmedian` of trait `Median`
+- `T` custom quantifiable to u64 -> method `uqmedian` of trait `Median`
 - `T` custom comparable by `c` -> method `qmedian_by` of trait `Median`
-- `T` custom comparable but not quantisable -> method `median_by` of trait `Median`.
+- `T` custom comparable but not quantifiable -> method `median_by` of trait `Median`.
 
 ## Algorithms Analysis
 
