@@ -11,56 +11,32 @@ use times::{benchf64, benchu64, benchu8, mutbenchf64, mutbenchu64};
 
 #[test]
 fn partbin() -> Result<(), Me> {
-    let mut data = [10_u64,9,8,7,6,5,4,3,2,1];
-    println!("{}",data.gr());
+    let mut data = [257_u64,9,8,7,6,5,4,3,2,1];
+    println!("Data: {}",data.gr());
+    println!("Bytes: {}",tobebytes(&data).gr());
     let n = data.len();
-    part_binary(&mut data, &(0..n), 3);
-    println!("{}",data.gr());
-    println!("Odd Median: {}",evenmedianu64(&mut data).gr());
+    let gtsub = part_binary(&mut data, &(0..n), 3);
+    println!("Partitioned by bit 3: {},{}",data[..gtsub].gr(),data[gtsub..].gr());
+    println!("Median: {}",evenmedianu64(&mut data).gr());
     Ok(())
 }
 
 #[test]
 fn parting() -> Result<(), Me> {
     let data = [
-        5.,
-        8.,
-        7.,
-        6.,
-        5.,
-        4.,
-        3.,
-        2.,
-        -f64::NAN,
-        1.,
-        0.,
-        1.,
-        -2.,
-        3.,
-        4.,
-        -5.,
-        f64::NAN,
-        f64::NAN,
-        6.,
-        7.,
-        7.,
+        5.,8.,7.,6.,5.,4.,3.,2.,-f64::NAN,
+        1.,0.,1.,-2.,3.,4.,-5.,f64::NAN,f64::NAN,
+        6.,7.,7.,
     ];
-    // println!("To u64s: {}",to_u64s(&data).gr());
-    // println!("To f64s: {}",to_f64s(&to_u64s(&data)).gr());
-    // println!("Scrubbed: {}", scrub_nans(&to_f64s(&to_u64s(&data))).gr());
+    println!("Data; {}",data.gr());
     let len = data.len();
-    println!("Pivot {}: {}", data[0].yl(), data.gr());
     let mut refdata = data.ref_vec(0..len);
     let (eqsub, gtsub) = <&mut [f64]>::part(&mut refdata, &(0..len), &mut <f64>::total_cmp);
-    println!(
-        "Result: {}\nCommas show the subranges:\n\
-        {GR}[{}, {}, {}]{UN}\n{} items equal to pivot {}",
-        (eqsub, gtsub).yl(),
-        refdata[0..eqsub].to_plainstr(),
-        refdata[eqsub..gtsub].to_plainstr(),
-        refdata[gtsub..len].to_plainstr(),
-        (gtsub - eqsub).yl(),
-        data[0].yl()
+    println!("Pivot {} : items found equal to pivot {}", data[0].yl(), (gtsub - eqsub).yl()); 
+    println!("Partitions:\n{}, {}, {}\n",        
+        refdata[0..eqsub].gr(), //to_plainstr(),
+        refdata[eqsub..gtsub].gr(),
+        refdata[gtsub..len].gr()
     );
     let refindex = data.isort_refs(0..len, |a, b| a.total_cmp(b));
     println!("isort_refs ascending sorted:\n{}", &refindex.gr());

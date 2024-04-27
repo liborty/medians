@@ -3,23 +3,34 @@ use core::cmp::{Ordering, Ordering::*};
 use indxvec::Mutops;
 use std::ops::Range;
 
-const FIRST_BIT: u64 = 0x8000_0000_0000_0000;
+const FIRST_BIT: u64 =  0x80_00_00_00_00_00_00_00;
+// const FIRST_BYTE: u64 = 0xFF_00_00_00_00_00_00_00;
 
-/// Partitions `s: &mut [u64]` within range `rng`, using bit number b.  
+/// Copies &[u64] to Vec<u8>
+pub fn tobebytes(v: &[u64]) -> Vec<u8> {
+    let n = v.len(); 
+    let mut bytes = vec![0u8;8*n];
+    for i in 0..n {
+        bytes[8*i..][..8].copy_from_slice(&v[i].to_be_bytes()); 
+    }
+    bytes
+}
+
+/// Partitions `s: &mut [u64]` within range `rng`, using bitmask.  
 /// Returns the boundary of the rearranged partitions gtstart, where  
-/// `rng.start..gtstart` (may be empty) contains items with bit b unset,
-/// `gtstart..rng.end` (may be empty) contains items with bit b set.
-pub fn part_binary(s: &mut [u64], rng: &Range<usize>, bitval: u64) -> usize {
+/// `rng.start..gtstart` (may be empty) contains items with zero bit(s) corresponding to bitmask,  
+/// `gtstart..rng.end` (may be empty) contains items with one (or more) set bit(s).
+pub fn part_binary(s: &mut [u64], rng: &Range<usize>, bitmask: u64) -> usize {
     let mut gtstart = rng.start;
     for &lt in s.iter().take(rng.end).skip(rng.start) {
-        if (lt & bitval) == 0 {
+        if (lt & bitmask) == 0 {
             gtstart += 1;
         } else {
             break;
         };
     }
     for i in gtstart + 1..rng.end {
-        if (s[i] & bitval) == 0 {
+        if (s[i] & bitmask) == 0 {
             s.swap(gtstart, i);
             gtstart += 1;
         };
@@ -27,7 +38,25 @@ pub fn part_binary(s: &mut [u64], rng: &Range<usize>, bitval: u64) -> usize {
     gtstart
 }
 
-/// index of middle valued item of three, using at most three comparisons
+/// Moves all items that have upper bytes equal to val to the beginning of the range.
+/// Overwrites whatever was there!
+pub fn collect(s:&mut [u64], rng: &Range<usize>, val: u64, byteno:usize) -> usize {
+    let mut nestart = rng.start;
+    for &eq in s.iter().take(rng.end).skip(rng.start) {
+        if (eq >> (8*byteno)) == val { nestart += 1; } else { break; };
+    }; // nestart is at the first non-equal item
+    for i in nestart + 1..rng.end {
+        if (s[i] >> (8*byteno)) == val {
+            s[nestart] = s[i];
+            nestart += 1;
+        };
+    }
+    nestart
+}   
+
+    
+
+/// index of middle valued item of three, using at most three comparisons {
 fn midof3<T>(
     s: &[&T],
     indx0: usize,
@@ -89,7 +118,7 @@ where
 pub fn min<'a, T>(s: &[&'a T], rng: Range<usize>, c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T {
     let mut min = s[rng.start];
     for si in s.iter().take(rng.end).skip(rng.start + 1) {
-        if c(si, min) == Ordering::Less {
+        if c(si,min) == Ordering::Less {
             min = si;
         };
     }
@@ -162,16 +191,16 @@ pub fn min2<'a, T>(
     rng: Range<usize>,
     c: &mut impl FnMut(&T, &T) -> Ordering,
 ) -> (&'a T, &'a T) {
-    let (mut min1, mut min2) = if c(s[rng.start + 1], s[rng.start]) == Ordering::Less {
-        (s[rng.start + 1], s[rng.start])
+    let (mut min1, mut min2) = if c(s[rng.start], s[rng.start+1]) == Ordering::Less {
+        (s[rng.start], s[rng.start+1])
     } else {
-        (s[rng.start], s[rng.start + 1])
+        (s[rng.start+1], s[rng.start])
     };
     for si in s.iter().take(rng.end).skip(rng.start + 2) {
-        if c(si, min1) == Ordering::Less {
+        if c(si,min1) == Ordering::Less {
             min2 = min1;
             min1 = si;
-        } else if c(si, min2) == Ordering::Less {
+        } else if c(si,min2) == Ordering::Less {
             min2 = si;
         }
     }
@@ -199,7 +228,7 @@ pub fn qbalance<T>(s: &[T], centre: &f64, q: impl Fn(&T) -> f64) -> i64 {
     1
 }
 
-/// Odd median of `&[u8]`
+/// Odd median of `&u[8]`
 pub fn oddmedianu8(s: &[u8]) -> u8 {
     let need = s.len() / 2; // median target position
     let mut histogram = [0_usize; 256];
@@ -220,7 +249,7 @@ pub fn oddmedianu8(s: &[u8]) -> u8 {
     255
 }
 
-/// Even median of `&[u8]`
+/// Even medians of `&[u8]`
 pub fn evenmedianu8(s: &[u8]) -> (u8,u8) {
     let need = s.len() / 2; // first median target position
     let mut histogram = [0_usize; 256];
@@ -237,15 +266,14 @@ pub fn evenmedianu8(s: &[u8]) -> (u8,u8) {
         };
         cummulator += hist;
         if firstres {
-            if need < cummulator {
+            if cummulator > need {
                 return (i,i); 
             }; // cummulator exceeds need, found both items
-            if need == cummulator {
+            if cummulator == need {
                 // found first item (last in this bucket)
                 res1 = i;
-                firstres = false;
-                continue; // search for the second item
-            };
+                firstres = false; 
+            }; // while cummulator < need, loop also continues
         } else {
             // the second item is in the first following non-zero bucket
             return (res1,i); 
@@ -254,6 +282,52 @@ pub fn evenmedianu8(s: &[u8]) -> (u8,u8) {
     if firstres { (255,255) } else { (res1,255) }
 }
 
+/// Odd median of specific bytes in `&u[64]`
+pub fn oddmed(s: &[u64], rng:&Range<usize>, byteno:usize) -> u64 {
+    let need = s.len() / 2; // median target position
+    let mut histogram = [0_usize; 256];
+    let mut cummulator = 0_usize; 
+    for &u in s.iter().skip(rng.start).take(rng.len()) {
+        histogram[((u >> (8*byteno)) & 0xFF) as usize] += 1;
+    };
+    for (i,h) in histogram.iter().enumerate().take(255) {
+        cummulator += h;
+        if cummulator > need {
+            return i as u64; 
+        };
+    }
+    255
+}
+/// Odd median of specific bytes in `&u[64]`
+pub fn evenmed(s: &[u64], rng:&Range<usize>, byteno:usize) -> (u64,u64) {
+    let need = s.len() / 2; // median target position
+    let mut histogram = [0_usize; 256];
+    let mut cummulator = 0_usize; 
+    let mut firstres = true;
+    let mut res1 = 255_u64;   
+    for &u in s.iter().skip(rng.start).take(rng.len()) {
+        histogram[((u >> (8*byteno)) & 0xFF) as usize] += 1;
+    };
+    for (i,&h) in histogram.iter().enumerate().take(255) { 
+        if h == 0_usize { continue };
+        cummulator += h;
+        if firstres {
+            if cummulator > need {
+                return (i as u64, i as u64); 
+            }; // cummulator exceeds need, found both items
+            if need == cummulator {
+                // found first item (last in this bucket)
+                res1 = i as u64;
+                firstres = false; 
+            };
+        } else {
+            // the second item is in the first following non-zero bucket
+            return (res1, i as u64); 
+        }; // found the second
+    };
+    if firstres { (255,255) } else { (res1,255) }
+}
+ 
 /// Median of odd sized u64 data
 pub fn oddmedianu64(s: &mut [u64]) -> u64 {
     let mut rng = 0..s.len();
@@ -341,13 +415,105 @@ pub fn evenmedianu64(s: &mut [u64]) -> (u64, u64) {
     }
 }
 
+/*
+/// Median of odd sized u64 data
+pub fn oddmedu64(s: &mut [u64]) -> u64 {
+    let mut rng = 0..s.len();
+    let need = s.len()/2; // median target position in fully partitioned
+    let bytes = tobebytes(s);
+    let mut byteno = 7; // 7..0 from the most significant (left hand) 
+    loop { 
+        let medianbyte = oddmed(s, &rng, byteno);
+        if byteno == 7 {  // termination of bytes iterations
+            return (s[rng.start] >> 8) & medianbyte;
+        };
+        rng = rng.start .. collect(s,&rng,medianbyte,byteno);
+
+        if rng.len() == 3 {
+            return s[pivotsub];
+        };
+
+         // well inside lt partition, iterate on it
+        if need + 2 < gtsub {
+            rng.end = gtsub;
+            bitval >>= 1; // next bit
+            continue;
+        };
+        // well inside gt partition, iterate on it
+        if need > gtsub + 1 { 
+            bitval >>= 1; // next bit
+            continue;
+        };
+        let start = rng.start;
+        // penultimate place in lt partition, find second maximum
+        if need + 2 == gtsub {
+            return max2u64(s, rng.start..gtsub).0;
+        };
+        // last place in the lt partition, find its maximum
+        if need + 1 == gtsub {
+            return maxu64(s, rng.start..gtsub);
+        };
+        // first place in gt partition, find its minimum
+        if need == gtsub {
+            return minu64(s, gtsub..rng.end);
+        };
+        // second place in gt partition, find second minimum
+        return min2u64(s, gtsub..rng.end).1;
+    }
+}
+
+
+/// Median of even sized u64 data
+pub fn evenmedu64(s: &mut [u64]) -> (u64, u64) {
+    let mut rng = 0..s.len();
+    let need = s.len() / 2 - 1; // first median target position
+    let mut bitval = FIRST_BIT; // set the most significant bit
+    loop {
+        let gtsub = part_binary(s, &rng, bitval);
+        if bitval == 1 {
+            // termination of bit iterations: same values left
+            if need < gtsub - 1 {
+                return (s[gtsub - 2], s[gtsub - 1]);
+            };
+            if need == gtsub - 1 {
+                return (s[gtsub - 1], s[gtsub]);
+            };
+            return (s[gtsub], s[gtsub + 1]);
+        };
+        // well inside lt partition, iterate on it
+        if need + 2 < gtsub {
+            rng.end = gtsub;
+            bitval >>= 1; // next bit
+            continue;
+        };
+        // well inside gt partition, iterate on it
+        if need > gtsub {
+            rng.start = gtsub;
+            bitval >>= 1; // next bit
+            continue;
+        };
+        // penultimate place in lt partition, solution is the maxima pair:
+        if need + 2 == gtsub {
+            return max2u64(s, rng.start..gtsub);
+        };
+        // last place in the lt partition:
+        if need + 1 == gtsub {
+            return (maxu64(s, rng.start..gtsub), minu64(s, gtsub..rng.end));
+        };
+        // first place in gt partition, the solution is its minima pair
+        if need == gtsub {
+            return min2u64(s, gtsub..rng.end);
+        };
+    }
+}
+*/
 /// Median of odd sized generic data with Odering comparisons by custom closure
 pub(super) fn oddmedian_by<'a, T>(
     s: &mut [&'a T],
     c: &mut impl FnMut(&T, &T) -> Ordering,
 ) -> &'a T {
     let mut rng = 0..s.len();
-    let need = s.len() / 2; // first median target position
+    let need = s.len() / 2; // first median target position  
     loop {
         let mut pivotsub = midof3(s, rng.start, rng.start + need, rng.end - 1, c);
         if rng.len() == 3 {
@@ -361,7 +527,8 @@ pub(super) fn oddmedian_by<'a, T>(
         if pivotsub != rng.start {
             s.swap(rng.start, pivotsub);
         };
-        let (eqsub, gtsub) = <&mut [T]>::part(s, &rng, c);
+        let pivotref = s[rng.start];
+        let (eqsub, gtsub) = <&mut [T]>::part(s, &rng, c); 
         // well inside lt partition, iterate on it
         if need + 2 < eqsub {
             rng.end = eqsub;
@@ -379,7 +546,7 @@ pub(super) fn oddmedian_by<'a, T>(
         };
         if need < gtsub {
             // within equals partition, return the pivot
-            return s[pivotsub];
+            return pivotref;
         };
         // first place in gt partition, the solution is its minimum
         if need == gtsub {

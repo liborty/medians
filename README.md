@@ -140,7 +140,7 @@ pub trait Median<'a, T> {
 
 ## Release Notes
 
-**Version 3.0.11** - Added method `uqmedian` to trait `Median` for types quantifiable to `u64` by some closure `q`.
+**Version 3.0.11** - Added method `uqmedian` to trait `Median` for types quantifiable to `u64` by some closure `q`. Fixed a recent bug in `oddmedian_by`, whereby the pivot reference was not timely saved. Sorry about that. This was affecting results where the pivot coincident with the median was guessed early on.
 
 **Version 3.0.10** - Added `medianu64`. It is faster on u64 data than the general purpose `median_by`. It is using a new algorithm that partitions by bits, thus avoiding the complexities of pivot estimation.
 

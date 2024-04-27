@@ -75,18 +75,16 @@ impl Medianf64 for &[f64] {
             _ => (),
         };
         let mut s = self
-            .iter()
-            .map(|x| {
-                if x.is_nan() {
-                    merror("Nan", "medf_checked: Nan in input!")
-                } else {
-                    Ok(x)
-                }
-            })
-            .collect::<Result<Vec<&f64>, Me>>()?;
+        .iter()
+        .map(|x| {
+            if x.is_nan() {
+                merror("Nan", "medf_checked: Nan in input!")
+            } else {
+                Ok(x)
+            }
+        }).collect::<Result<Vec<&f64>, Me>>()?;
         if (n & 1) == 1 {
-            let oddm = oddmedian_by(&mut s, &mut <f64>::total_cmp);
-            Ok(*oddm)
+            Ok(*oddmedian_by(&mut s, &mut <f64>::total_cmp)) 
         } else {
             let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
             Ok((med1+med2) / 2.0)
@@ -106,8 +104,7 @@ impl Medianf64 for &[f64] {
         };
         let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
-            let oddm = oddmedian_by(&mut s, &mut <f64>::total_cmp);
-            *oddm
+            *oddmedian_by(&mut s, &mut <f64>::total_cmp)  
         } else {
             let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
             (med1 + med2) / 2.0

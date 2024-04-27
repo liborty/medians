@@ -12,7 +12,7 @@ pub mod implementations;
 
 use core::cmp::Ordering;
 use core::fmt::Debug;
-use crate::algos::{oddmedianu8,evenmedianu8,oddmedianu64,evenmedianu64};
+use crate::algos::{oddmedianu8,evenmedianu8,oddmedianu64,evenmedianu64}; // ,oddmedu64,evenmedu64
 
 /// Shorthand type for medians errors with message payload specialized to String
 pub type Me = MedError<String>;
@@ -86,6 +86,16 @@ pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me> {
     else { Ok(ConstMedians::Even(evenmedianu64(s))) }
 }
 
+/*
+/// Fast medians of u64 end type by iterated radix search
+pub fn medu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me> {
+    if (s.len() & 1) == 1 {
+        Ok(ConstMedians::Odd(oddmedu64(s)))
+    } else {
+        Ok(ConstMedians::Even(evenmedu64(s)))
+    }
+}
+*/
 /// Fast 1D medians of floating point data, plus related methods
 pub trait Medianf64 {
     /// Median of f64s, NaNs removed
