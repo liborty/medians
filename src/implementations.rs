@@ -36,29 +36,13 @@ where
     }
 }
 
-impl<T> std::fmt::Display for ConstMedians<T>
-where
-    T: Display,
+impl<T> From<Medians<'_, T>> for f64
+where T: Copy+std::convert::Into<u64>
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ConstMedians::Odd(m) => {
-                write!(f, "{YL}odd median: {GR}{}{UN}", *m)
-            }
-            ConstMedians::Even((m1, m2)) => {
-                write!(f, "{YL}even medians: {GR}{} {}{UN}", *m1, *m2)
-            }
-        }
-    }
-}
-
-impl<T> From<ConstMedians<T>> for f64
-where T: std::convert::Into<u64>
-{
-    fn from(item:ConstMedians<T>) -> f64 {
+    fn from(item:Medians<T>) -> f64 {
         match item {
-            ConstMedians::Odd(m) => m.into() as f64,
-            ConstMedians::Even((m1, m2)) => (m1.into() as f64 + m2.into() as f64)/ 2.0
+            Medians::Odd(&m) => m.into() as f64,
+            Medians::Even((&m1, &m2)) => (m1.into() as f64 + m2.into() as f64)/ 2.0
         }
     }
 }
@@ -207,8 +191,9 @@ impl<'a, T> Median<'a, T> for &'a [T] {
         }
     }
 
-    /// Median of `&[T]`, quantifiable to u64's by `q`. Returns a single f64.
-    /// When T is a primitive type directly convertible to u64, use `as u64` as `q`.
+    /// Median of `&[T]`, quantifiable to u64's by `q`. 
+    /// Returns a single f64, possibly losing some precision for even medians.
+    /// When T is a primitive type directly convertible to u64, use `as u64` for `q`.
     /// When u64:From<T> is implemented, use `|x| x.into()` as `q`.
     /// In all other cases, use custom quantification closure `q`.
     /// When T is not quantifiable at all, use the ultimate `median_by` method.
@@ -224,7 +209,10 @@ impl<'a, T> Median<'a, T> for &'a [T] {
             _ => (),
         };
         let mut s:Vec<u64> = self.iter().map(q).collect();
-        Ok(medianu64(&mut s)?.into())
+        match medianu64(&mut s)? {
+            Medians::Odd(r) => Ok(*r as f64),
+            Medians::Even((r1, r2)) => Ok((*r1 as f64 + *r2 as f64) / 2_f64)
+        }
     }
 
     /// Median(s) of unquantifiable type by general comparison closure

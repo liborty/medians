@@ -4,6 +4,27 @@ use core::ops::{Deref, Neg};
 
 const FSIGN: u64 = 0x8000_0000_0000_0000;
 
+/// middle valued ref of three, at most three comparisons
+pub fn midof3refs<'a, T>(
+    item1: &'a T,
+    item2: &'a T,
+    item3: &'a T,
+    c: &mut impl FnMut(&T, &T) -> Ordering,
+) -> &'a T {
+    let (min, max) = if c(item2, item1) == Less {
+        (item2, item1)
+    } else {
+        (item1, item2)
+    };
+    if c(min, item3) != Less {
+        return min;
+    };
+    if c(item3, max) != Less {
+        return max;
+    };
+    item3
+}
+
 /// Index of the middling value of four refs. Makes only three comparisons
 fn middling(
     idx0: usize,
@@ -62,26 +83,6 @@ pub fn quant_vec<T, U>(v: &[T], quantify: impl Fn(&T) -> U) -> Vec<U> {
     v.iter().map(quantify).collect::<Vec<U>>()
 }
 
-/// middle valued ref out of three, at most three comparisons
-pub fn midof3<'a, T>(
-    item1: &'a T,
-    item2: &'a T,
-    item3: &'a T,
-    c: &mut impl FnMut(&T, &T) -> Ordering,
-) -> &'a T {
-    let (min, max) = if c(item2, item1) == Less {
-        (item2, item1)
-    } else {
-        (item1, item2)
-    };
-    if c(min, item3) != Less {
-        return min;
-    };
-    if c(item3, max) != Less {
-        return max;
-    };
-    item3
-}
 
 /// pivot estimate as recursive mid of mids of three
 pub fn midofmids<'a, T>(s: &[&T], rng: Range<usize>, c: &mut impl FnMut(&T, &T) -> Ordering) -> &'a T
