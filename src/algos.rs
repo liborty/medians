@@ -17,28 +17,6 @@ pub fn tobebytes(v: &[u64]) -> Vec<u8> {
 }
 */
 
-/// Partitions `s: &mut [u64]` within range `rng`, using bitmask.  
-/// Returns the boundary of the rearranged partitions gtstart, where  
-/// `rng.start..gtstart` (may be empty) contains items with zero bit(s) corresponding to bitmask,  
-/// `gtstart..rng.end` (may be empty) contains items with one (or more) set bit(s).
-pub fn part_binary(s: &mut [u64], rng: &Range<usize>, bitmask: u64) -> usize {
-    let mut gtstart = rng.start;
-    for &lt in s.iter().take(rng.end).skip(rng.start) {
-        if (lt & bitmask) == 0 {
-            gtstart += 1;
-        } else {
-            break;
-        };
-    }
-    for i in gtstart + 1..rng.end {
-        if (s[i] & bitmask) == 0 {
-            s.swap(gtstart, i);
-            gtstart += 1;
-        };
-    }
-    gtstart
-}
-
 /// index of middle valued ref of three, using at most three comparisons {
 pub fn midof3<T>(
     s: &[T],
@@ -275,7 +253,7 @@ pub fn oddmedianu64(s: &mut [u64]) -> &u64 {
     let need = s.len() / 2; // median target position in fully partitioned
     let mut bitval = FIRST_BIT; // set the most significant bit
     loop {
-        let gtsub = part_binary(s, &rng, bitval);
+        let gtsub = s.part_binary(&rng, bitval);
         if bitval == 1 {
             // termination of bit iterations: same values left
             if need < gtsub {
@@ -318,13 +296,13 @@ pub fn evenmedianu64(s: &mut [u64]) -> (&u64, &u64) {
     let need = s.len() / 2 - 1; // first median target position
     let mut bitval = FIRST_BIT; // set the most significant bit
     loop {
-        let gtsub = part_binary(s, &rng, bitval);
+        let gtsub = s.part_binary(&rng, bitval);
         if bitval == 1 {
             // termination of bit iterations: same values left
-            if need < gtsub - 1 {
+            if need + 1 < gtsub {
                 return (&s[gtsub - 2], &s[gtsub - 1]);
             };
-            if need == gtsub - 1 {
+            if need + 1 == gtsub {
                 return (&s[gtsub - 1], &s[gtsub]);
             };
             return (&s[gtsub], &s[gtsub + 1]);
@@ -411,7 +389,7 @@ pub(super) fn oddmedu64(bytes: &[[u8; 8]], byteno: usize, need: usize) -> u64 {
 }
 
 /*
-/// Median of even sized u64 data (recursive)
+/// Median of even sized u64 data (recursive) - work in progress
 pub(super) fn evenmedu64(bytes: &[[u8;8]], byteno:usize, need:usize) -> (u64, u64) {
     let n = bytes.len();
     assert_ne!(n,0,"evenmedu64 failed to find median");

@@ -4,7 +4,7 @@
 
 ## **by Libor Spacek**
 
-Fast algorithm for finding medians of one dimensional data, implemented in 100% safe Rust.
+Fast new algorithms for finding medians, implemented in 100% safe Rust.
 
 ```rust
 use medians::{*,algos::*};
@@ -12,9 +12,9 @@ use medians::{*,algos::*};
 
 ## Introduction
 
-Finding medians is a common task in statistics and data analysis. At least it ought to be, because median is a more stable measure of central tendency than mean. Similarly, `mad` (median of absolute differences) is a more stable measure of data spread than standard deviation, which is dominated by squared outliers. Median and `mad` are not used nearly enough mostly for practical historical reasons: they are more difficult to compute. The fast algorithms presented here provide remedy for this situation.
+Finding medians is a common task in statistics and data analysis. At least it ought to be, because median is a more stable measure of central tendency than mean. Similarly, `mad` (median of absolute differences) is a more stable measure of data spread than standard deviation, which is dominated by squared outliers. Median and `mad` are not used nearly enough mostly for practical historical reasons: they are more difficult to compute. The fast algorithms presented here provide a remedy for this situation.
 
-We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geometric Median is the most stable way to characterise multidimensional data. The one dimensional case is addressed here.
+We argued in [`rstats`](https://github.com/liborty/rstats), that using the Geometric Median is the most stable way to characterise multidimensional data. The one dimensional case is addressed in this crate.
 
 See [`tests.rs`](https://github.com/liborty/medians/blob/main/tests/tests.rs) for examples of usage. Their automatically generated output can also be found by clicking the 'test' icon at the top of this document and then examining the latest log.
 
@@ -27,26 +27,26 @@ Best methods/functions to be deployed, depending on the end type of data (i.e. t
 - `f64` -> methods of trait Medianf64
 - `T` custom quantifiable to u64 -> method `uqmedian` of trait `Median`
 - `T` custom comparable by `c` -> method `qmedian_by` of trait `Median`
-- `T` custom comparable but not quantifiable -> method `median_by` of trait `Median`.
+- `T` custom comparable but not quantifiable -> general method `median_by` of trait `Median`.
 
 ## Algorithms Analysis
 
-Short primitive types are best dealt with by radix search. We have implemented it for `u8`:
+Short primitive types are best dealt with by radix search. We have implemented it for `u8` and for `u64`:
 
 ```rust
-/// Median of primitive type u8 by fast radix search
-pub fn medianu8(s: &[u8]) -> Result<ConstMedians<u8>, Me>
+/// Medians of u8 end type by fast radix search
+pub fn medianu8(s: &[u8]) -> Result<ConstMedians<u8>, Me>;
+/// Medians of u64 end type by fast recursive radix search
+pub fn medu64(s: &mut [u64]) -> Result<(u64, u64), Me>;
 ```
 
-More complex data types require general comparison search, see `median_by`. Median can be found naively by sorting the list of data and then picking its midpoint. The best comparison sort algorithms have complexity `O(n*log(n))`. However, faster median algorithms with complexity `O(n)` are possible. They are based on the observation that data need to be all sorted, only partitioned and counted off. Therefore, the naive sort method can not compete and has been deleted as of version 2.0.0.
+More complex data types require general comparison search, see `median_by`. Median can be found naively by sorting the list of data and then picking its midpoint. The best comparison sort algorithms have complexity `O(n*log(n))`. However, faster median algorithms with complexity `O(n)` are possible. They are based on the observation that data need to be all fully sorted, only partitioned and counted off. Therefore, the naive sort method can not compete and has been deleted as of version 2.0.0.
 
-Currently considered to be the 'state of the art' comparison algorithm is Floyd-Rivest (1975): Median of Medians. This divides the data into groups of five items, finds median of each group by sort, then finds medians of five of these medians, and so on, until only one remains. This is then used as the pivot for partitioning of the original data. Such pivot will produce good partitioning, though not perfect. Counting off and iterating is still necessary.
+Floyd-Rivest (1975): Median of Medians is currently considered to be 'the state of the art' comparison algorithm. It divides the data into groups of five items, finds median of each group by sort, then finds medians of five of these medians, and so on, until only one remains. This is then used as the pivot for partitioning of the original data. Such pivot will produce good partitioning, though not perfect halving. Counting off and iterating is therefore still necessary.
 
-However, finding the best pivot estimate is not the main objective. The real objective is to eliminate (count off) eccentric data items as fast as possible. Therefore, the expense of estimating the pivot is highly relevant. It is possible to use less optimal pivots, yet to find the medians faster on average. In any case, efficient partitioning is a must.
+Finding the best possible pivot estimate is not the main objective. The real objective is to eliminate (count off) eccentric data items as fast as possible, overall. Therefore, the time spent estimating the pivot has to be taken into account. It is possible to settle for less optimal pivots, yet to find the medians faster on average. In any case, efficient partitioning is a must.
 
-Let our average ratio of items remaining after one partitioning be `rs` and the Floyd-Rivest's be `rf`. Typically, `1/2 <= rf <= rs < 1`, i.e. `rf` is more optimal, being nearer to the perfect partitioning ratio of `1/2`. However, suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their expensive pivot selection process). Then it is enough for better performance that `rs^2 < rf`, which is perfectly possible and seems to be born out in practice. For example, `rf=0.65` (nearly optimal), `rs=0.8` (deeply suboptimal), yet `rs^2 < rf`.
-
-Nonetheless, on large datasets, we do devote some of the overall computational effort to pivot selection.
+Let our average ratio of items remaining after one partitioning be `rs` and the Floyd-Rivest's be `rf`. Typically, `1/2 <= rf <= rs < 1`, i.e. `rf` is more optimal, being nearer to the perfect halving (ratio of `1/2`). Suppose that we can perform two partitions in the time it takes Floyd-Rivest to do one (because of their slow pivot selection). Then it is enough for better performance that `rs^2 < rf`, which is perfectly possible and seems to be born out in practice. For example, `rf=0.65` (nearly optimal), `rs=0.8` (deeply suboptimal), yet `rs^2 < rf`. Nonetheless, some computational effort devoted to the pivot selection, proportional to the data length, is worth it.
 
 We introduce another new algorithm, implemented as function `medianu64`:
 
@@ -140,9 +140,9 @@ pub trait Median<'a, T> {
 
 ## Release Notes
 
-**Version 3.1.0** - Adding faster `medu64`, even variant is still work in progress.
+**Version 3.0.12** - Adding faster `medu64`, even variant is still work in progress. Fixed a bug.
 
-**Version 3.0.11** - Added method `uqmedian` to trait `Median` for types quantifiable to `u64` by some closure `q`. Fixed a recent bug in `oddmedian_by`, whereby the pivot reference was not timely saved. Sorry about that. This was affecting results where the pivot coincident with the median was guessed early on.
+**Version 3.0.11** - Added method `uqmedian` to trait `Median` for types quantifiable to `u64` by some closure `q`. Fixed a recent bug in `oddmedian_by`, whereby the pivot reference was not timely saved.
 
 **Version 3.0.10** - Added `medianu64`. It is faster on u64 data than the general purpose `median_by`. It is using a new algorithm that partitions by bits, thus avoiding the complexities of pivot estimation.
 

@@ -48,7 +48,7 @@ pub enum Medians<'a, T> {
     Even((&'a T, &'a T)),
 }
 
-/// Fast medians of u8 end type by fast radix search
+/// Medians of u8 end type by fast radix search
 pub fn medianu8(s: &[u8]) -> Result<(u8, u8), Me> {
     let n = s.len();
     if n == 0 {
@@ -91,7 +91,7 @@ pub fn medianu64(s: &mut [u64]) -> Result<Medians<u64>, Me> {
     }
 }
 
-/// Fast medians of u64 end type by radix search
+/// Medians of u64 end type by fast recursive radix search
 pub fn medu64(s: &mut [u64]) -> Result<(u64, u64), Me> {
     if (s.len() & 1) == 1 {
         let byteslice = s.iter().map(|x| x.to_be_bytes()).collect::<Vec<[u8; 8]>>();

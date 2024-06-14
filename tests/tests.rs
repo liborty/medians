@@ -14,10 +14,46 @@ fn partbin() -> Result<(), Me> {
     let mut data = [257_u64,9,8,7,6,5,4,3,2,1];
     println!("Data: {}",data.gr());  
     let n = data.len();
-    let gtsub = part_binary(&mut data, &(0..n), 3);
+    let gtsub = data.part_binary( &(0..n), 3);
     println!("Partitioned by bit 3: {},{}",data[..gtsub].gr(),data[gtsub..].gr());
     println!("Median: {}",evenmedianu64(&mut data).gr());
     Ok(())
+}
+
+#[test]
+fn ftest() -> Result<(), Me> {
+let a = vec![
+    100.0, 
+    163.6170150950381,
+    224.6127142531872,
+    239.91368100304916,
+    345.1674002412572,
+    402.88833594261706,
+    423.6406741377381,
+    472.6292699764225,
+    487.23306678749594,
+    490.94434592125606,
+    511.16658896980687,
+    516.3472076946555,
+    523.052566308903,
+    563.6784311991111,
+    586.7283185517608,
+    633.5580942760708,
+    678.4956618813414,
+    708.2452516626092,
+    741.9710552209048,
+    763.476192474483,
+    768.6249939324011,
+    777.1952444919513,
+    785.2192860329102,
+    785.3178558989187,
+    858.0319001781837,
+    927.4228569429413,
+    952.453888947949,
+    1067.6089037099757,
+];
+eprintln!("Median: {} ", a.medf_unchecked());
+Ok(())
 }
 
 #[test]
@@ -107,10 +143,13 @@ fn medf64() -> Result<(), Me> {
     let median = v.medf_checked()?;
     let mad = v.madf(median);
     println!("Median±mad: {GR}{}±{}{UN}", median, mad);
+    println!("Mean:       {GR}{}{UN}", v.iter().sum::<f64>()/(len as f64));
     println!(
         "Weighted median: {GR}{}{UN} ",
-        v.medf_weighted(&weights, 0.0001)?
+        v.medf_weighted(&weights, 0.00001)?
     );
+    let prodsum:f64 = v.iter().zip(weights.iter()).map(|(x,w)| x*w ).sum();
+    println!("Weighted mean:   {GR}{}{UN}", prodsum/weights.iter().sum::<f64>());
     Ok(())
 }
 
@@ -157,9 +196,12 @@ fn errors() -> Result<(), Me> {
     Ok(())
 }
 
-const NAMES: [&str; 4] = ["median_by","medf_checked","uqmedian","medu64"];
+#[test]
+fn comparison() {
+println!("Comparison tests running, please wait....");
+const NAMES: [&str; 5] = ["median_by","medf_unchecked","uqmedian","medianu64","medu64"];
 
-const CLOSURESU64: [fn(&mut [u64]); 4] = [
+const CLOSURESU64: [fn(&mut [u64]); 5] = [
     |v: &mut [_]| {
         v.median_by(&mut <u64>::cmp)
             .expect("median_by closure failed");
@@ -167,12 +209,17 @@ const CLOSURESU64: [fn(&mut [u64]); 4] = [
 
     |v: &mut [_]| {
         let vf:Vec<f64> = v.iter().map(|&x| x as f64).collect();
-        vf.medf_checked()
-        .expect("medf_checked found NaN");
+        vf.medf_unchecked();
+    //    .expect("medf_checked found NaN");
     },
 
     |v: &mut [_]| { // already in u64, so using identity quantifier
         v.uqmedian(|&x| x)
+        .expect("uqmedian error");
+    },
+
+    |v: &mut [_]| {
+        medianu64(v)
         .expect("uqmedian error");
     },
 
@@ -201,10 +248,5 @@ const CLOSURESU64: [fn(&mut [u64]); 4] = [
     }
     */
 ];
-
-#[test]
-fn comparison() {
-    // set_seeds(0); // intialise random numbers generator
-    // Rnum encapsulates the type of random data to be generated
     mutbenchu64(100000..100010, 1, 10, &NAMES, &CLOSURESU64);
 }
