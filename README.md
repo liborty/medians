@@ -63,23 +63,23 @@ pub fn medianu64(s: &mut [u64]) -> Result<ConstMedians<u64>, Me>
 - Fast (in-place) iterative partitioning into three subranges (lesser,equal,greater), minimising data movements and memory management.
 - Simple pivot selection strategy: median of three samples (requires only three comparisons). Really poor pivots occur only rarely during the iterative process. For longer data, we deploy median of three medians.
 
-## Trait Medianf64
+## Trait MedianF
 
 ```rust
 /// Fast 1D medians of floating point data, plus related methods
-pub trait Medianf64 {
-    /// Median of f64s, NaNs removed
-    fn medf_checked(self) -> Result<f64, Me>;
-    /// Median of f64s, including NaNs
-    fn medf_unchecked(self) -> f64;
+pub trait MedianF<F> {
+    /// Median of floats, NaNs removed
+    fn medf_checked(self) -> Result<F, Me>;
+    /// Median of floats, including NaNs
+    fn medf_unchecked(self) -> F;
     /// Iterative weighted median
-    fn medf_weighted(self, ws: Self, eps: f64) -> Result<f64, Me>;
+    fn medf_weighted(self, ws: Self, eps: F) -> Result<F, Me>;
     /// Zero mean/median data produced by subtracting the centre
-    fn medf_zeroed(self, centre: f64) -> Vec<f64>;
+    fn medf_zeroed(self, centre: F) -> Vec<F>;
     /// Median correlation = cosine of an angle between two zero median vecs
-    fn medf_correlation(self, v: Self) -> Result<f64, Me>;
+    fn medf_correlation(self, v: Self) -> Result<F, Me>;
     /// Median of absolute differences (MAD).
-    fn madf(self, centre: f64) -> f64;
+    fn madf(self, centre: F) -> F;
 }
 ```
 
@@ -139,6 +139,8 @@ pub trait Median<'a, T> {
 ```
 
 ## Release Notes
+
+**Version 4.0.0** - Added support for `f32` medians.
 
 **Version 3.0.12** - Adding faster `medu64`, even variant is still work in progress. Fixed a bug.
 

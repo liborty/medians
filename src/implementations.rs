@@ -47,10 +47,12 @@ where T: Copy+std::convert::Into<u64>
     }
 }
 
-/// Medians of &mut [&f64].
-impl Medianf64 for &[f64] {
+macro_rules! medianf { ($ty:tt) => {
+
+/// Medians of floating-point slices.
+impl MedianF<$ty> for &[$ty] {
     /// Returns `nan` error when any data item is a NaN, otherwise the median
-    fn medf_checked(self) -> Result<f64, Me> {
+    fn medf_checked(self) -> Result<$ty, Me> {
         let n = self.len();
         match n {
             0 => return merror("size", "medf_checked: zero length data"),
@@ -66,11 +68,11 @@ impl Medianf64 for &[f64] {
             } else {
                 Ok(x)
             }
-        }).collect::<Result<Vec<&f64>, Me>>()?;
+        }).collect::<Result<Vec<&$ty>, Me>>()?;
         if (n & 1) == 1 {
-            Ok(*oddmedian_by(&mut s, &mut <f64>::total_cmp)) 
+            Ok(*oddmedian_by(&mut s, &mut <$ty>::total_cmp)) 
         } else {
-            let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
+            let (&med1, &med2) = evenmedian_by(&mut s, &mut <$ty>::total_cmp);
             Ok((med1+med2) / 2.0)
         }
     }
@@ -78,36 +80,36 @@ impl Medianf64 for &[f64] {
     /// Use this when your data does not contain any NaNs.
     /// NaNs will not raise an error. However, they will affect the result
     /// because of their order positions beyond infinity.
-    fn medf_unchecked(self) -> f64 {
+    fn medf_unchecked(self) -> $ty {
         let n = self.len();
         match n {
-            0 => return 0_f64,
+            0 => return 0.0,
             1 => return self[0],
             2 => return (self[0] + self[1]) / 2.0,
             _ => (),
         };
         let mut s = self.ref_vec(0..self.len());
         if (n & 1) == 1 {
-            *oddmedian_by(&mut s, &mut <f64>::total_cmp)  
+            *oddmedian_by(&mut s, &mut <$ty>::total_cmp)  
         } else {
-            let (&med1, &med2) = evenmedian_by(&mut s, &mut <f64>::total_cmp);
+            let (&med1, &med2) = evenmedian_by(&mut s, &mut <$ty>::total_cmp);
             (med1 + med2) / 2.0
         }
     }
     /// Iterative weighted median with accuracy eps
-    fn medf_weighted(self, ws: Self, eps: f64) -> Result<f64, Me> { 
+    fn medf_weighted(self, ws: Self, eps: $ty) -> Result<$ty, Me> { 
         if self.len() != ws.len() { 
             return merror("size","medf_weighted - data and weights lengths mismatch"); };
-        if nans(self) {
+        if self.iter().any(|f| f.is_nan()) {
             return merror("Nan","medf_weighted - detected Nan in input"); };
-        let weights_sum: f64 = ws.iter().sum();
-        let mut last_median  = 0_f64;
+        let weights_sum: $ty = ws.iter().sum();
+        let mut last_median  = 0.0;
         for (g,w) in self.iter().zip(ws) { last_median += w*g; }; 
         last_median /= weights_sum; // start iterating from the weighted centre 
-        let mut last_recsum = 0f64;
+        let mut last_recsum = 0.0;
         loop { // iteration till accuracy eps is exceeded  
-            let mut median = 0_f64;   
-            let mut recsum = 0_f64;
+            let mut median = 0.0;   
+            let mut recsum = 0.0;
             for (x,w) in self.iter().zip(ws) {   
                 let mag = (x-last_median).abs(); 
                 if mag.is_normal() { // only use this point if its distance from median is > 0.0
@@ -123,17 +125,17 @@ impl Medianf64 for &[f64] {
     }
     /// Zero mean/median data produced by subtracting the centre,
     /// typically the mean or the median.
-    fn medf_zeroed(self, centre: f64) -> Vec<f64> {
+    fn medf_zeroed(self, centre: $ty) -> Vec<$ty> {
         self.iter().map(|&s| s - centre).collect()
     }
     /// Median correlation = cosine of an angle between two zero median vectors,
     /// (where the two data samples are interpreted as n-dimensional vectors).
-    fn medf_correlation(self, v: Self) -> Result<f64, Me> {
-        let mut sx2 = 0_f64;
-        let mut sy2 = 0_f64;
+    fn medf_correlation(self, v: Self) -> Result<$ty, Me> {
+        let mut sx2 = 0.0;
+        let mut sy2 = 0.0;
         let smedian = self.medf_checked()?;
         let vmedian = v.medf_checked()?;
-        let sxy: f64 = self
+        let sxy: $ty = self
             .iter()
             .zip(v)
             .map(|(&xt, &yt)| {
@@ -154,13 +156,18 @@ impl Medianf64 for &[f64] {
     /// Data dispersion estimator MAD (Median of Absolute Differences).
     /// MAD is more stable than standard deviation and more general than quartiles.
     /// When argument `centre` is the median, it is the most stable measure of data dispersion.
-    fn madf(self, centre: f64) -> f64 {
+    fn madf(self, centre: $ty) -> $ty {
         self.iter()
             .map(|&s| (s - centre).abs())
-            .collect::<Vec<f64>>()
+            .collect::<Vec<$ty>>()
             .medf_unchecked()
     }
 }
+
+}} // end macro_rules
+
+medianf!(f64);
+medianf!(f32);
 
 /// Medians of &[T]
 impl<'a, T> Median<'a, T> for &'a [T] {
@@ -240,7 +247,7 @@ impl<'a, T> Median<'a, T> for &'a [T] {
     /// zero median vectors (analogously to Pearson's zero mean vectors)
     /// # Example
     /// ```
-    /// use medians::{Medianf64,Median};
+    /// use medians::{MedianF,Median};
     /// use core::convert::identity;
     /// use core::cmp::Ordering::*;
     /// let v1 = vec![1_f64,2.,3.,4.,5.,6.,7.,8.,9.,10.,11.,12.,13.,14.];
